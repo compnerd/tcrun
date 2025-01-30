@@ -1,0 +1,34 @@
+name: Build
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - branch: swift-6.1-branch
+            tag: 6.1-DEVELOPMENT-SNAPSHOT-2025-01-23-a
+
+          - branch: development
+            tag: DEVELOPMENT-SNAPSHOT-2025-01-10-a
+
+    name: Swift ${{ matrix.tag }}
+
+    steps:
+      - uses: compnerd/gha-setup-swift@main
+        with:
+          tag: ${{ matrix.tag }}
+          branch: ${{ matrix.branch }}
+
+      - uses: actions/checkout@v4
+
+      - run: swift build -v
+
