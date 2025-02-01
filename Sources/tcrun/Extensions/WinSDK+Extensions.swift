@@ -10,55 +10,55 @@ internal var KEY_READ: DWORD {
 
 @_transparent
 internal func MAKELANGID(_ p: WORD, _ s: WORD) -> DWORD {
-  return DWORD((s << 10) | p)
+  DWORD((s << 10) | p)
 }
 
 @_transparent
 internal func HRESULT_FACILITY(_ hr: HRESULT) -> WORD {
-  return WORD((Int32(hr) >> 16) & 0x1fff)
+  WORD((Int32(hr) >> 16) & 0x1fff)
 }
 
 @_transparent
 internal func HRESULT_CODE(_ hr: HRESULT) -> WORD {
-  return WORD(Int32(hr) & 0xffff)
+  WORD(Int32(hr) & 0xffff)
 }
 
 @_transparent
 internal var RRF_RT_REG_SZ: DWORD {
-  return DWORD(WinSDK.RRF_RT_REG_SZ)
+  DWORD(WinSDK.RRF_RT_REG_SZ)
 }
 
 @_transparent
 internal var ERROR_INVALID_DATA: DWORD {
-  return DWORD(WinSDK.ERROR_INVALID_DATA)
+  DWORD(WinSDK.ERROR_INVALID_DATA)
 }
 
 @_transparent
 internal var FORMAT_MESSAGE_ALLOCATE_BUFFER: DWORD {
-  return DWORD(WinSDK.FORMAT_MESSAGE_ALLOCATE_BUFFER)
+  DWORD(WinSDK.FORMAT_MESSAGE_ALLOCATE_BUFFER)
 }
 
 @_transparent
 internal var FORMAT_MESSAGE_FROM_SYSTEM: DWORD {
-  return DWORD(WinSDK.FORMAT_MESSAGE_FROM_SYSTEM)
+  DWORD(WinSDK.FORMAT_MESSAGE_FROM_SYSTEM)
 }
 
 @_transparent
 internal var FORMAT_MESSAGE_IGNORE_INSERTS: DWORD {
-  return DWORD(WinSDK.FORMAT_MESSAGE_IGNORE_INSERTS)
+  DWORD(WinSDK.FORMAT_MESSAGE_IGNORE_INSERTS)
 }
 
 @_transparent
 internal var LANG_NEUTRAL: WORD {
-  return WORD(WinSDK.LANG_NEUTRAL)
+  WORD(WinSDK.LANG_NEUTRAL)
 }
 
 @_transparent
 internal var SUBLANG_DEFAULT: WORD {
-  return WORD(WinSDK.SUBLANG_DEFAULT)
+  WORD(WinSDK.SUBLANG_DEFAULT)
 }
 
 @_transparent
 internal var TOKEN_QUERY: DWORD {
-  return DWORD(WinSDK.TOKEN_QUERY)
+  DWORD(WinSDK.TOKEN_QUERY)
 }

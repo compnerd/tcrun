@@ -1,8 +1,8 @@
 // Copyright © 2025 Saleem Abdulrasool <compnerd@compnerd.org>
 // SPDX-License-Identifier: BSD-3-Clause
 
-internal import WinSDK
 internal import Foundation
+internal import WinSDK
 
 extension HKEY: HandleValue {
   internal static func release(_ handle: HKEY?) {
@@ -37,8 +37,8 @@ extension ManagedHandle where Value == HKEY {
 
   internal func QueryValue(_ lpSubKey: String?,
                            _ lpValue: String?) throws -> String {
-    return try lpSubKey.withUTF16CString { lpSubKey in
-      return try lpValue.withUTF16CString { lpValue in
+    try lpSubKey.withUTF16CString { lpSubKey in
+      try lpValue.withUTF16CString { lpValue in
         var cbData: DWORD = 0
         var lStatus: LSTATUS
 
@@ -101,6 +101,6 @@ extension ManagedHandle where Value == HKEY {
   }
 
   internal var subkeys: SubKeyIterator {
-    get throws { return try SubKeyIterator(self) }
+    get throws { try SubKeyIterator(self) }
   }
 }

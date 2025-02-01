@@ -1,8 +1,8 @@
 // Copyright © 2025 Saleem Abdulrasool <compnerd@compnerd.org>
 // SPDX-License-Identifier: BSD-3-Clause
 
-internal import WinSDK
 internal import Foundation
+internal import WinSDK
 
 internal func GetEnvironmentVariable(_ name: String) throws -> String? {
   try name.withCString(encodedAs: UTF16.self) { szVariable in

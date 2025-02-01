@@ -1,8 +1,8 @@
 // Copyright © 2025 Saleem Abdulrasool <compnerd@compnerd.org>
 // SPDX-License-Identifier: BSD-3-Clause
 
-internal import WinSDK
 internal import Foundation
+internal import WinSDK
 
 extension Optional where Wrapped == String {
   internal func withUTF16CString<T>(_ body: (UnsafePointer<UTF16.CodeUnit>?) throws -> T)
