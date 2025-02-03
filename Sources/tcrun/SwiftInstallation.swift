@@ -122,7 +122,6 @@ extension SwiftInstallation {
   }
 }
 
-#if DEBUG
 extension SwiftInstallation: CustomStringConvertible {
   public var description: String {
     return """
@@ -133,7 +132,7 @@ extension SwiftInstallation: CustomStringConvertible {
       Toolchains:
       \(
         toolchains.map {
-          "  - \($0.location.path) [\($0.identifier)]"
+          "  - \($0.identifier) [\($0.location.path)]"
         }.joined(separator: "\n    ")
       )
       Platforms:
@@ -154,4 +153,3 @@ extension SwiftInstallation: CustomStringConvertible {
     """
   }
 }
-#endif
