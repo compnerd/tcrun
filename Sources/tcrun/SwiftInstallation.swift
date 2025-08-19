@@ -64,7 +64,7 @@ extension SwiftInstallation {
       throws -> SwiftInstallation? {
     let hSubKey = try hKey.OpenKey(lpSubKey, 0, KEY_READ)
 
-    guard let szDisplayName = try? hSubKey.QueryValue(nil, "DisplayName") else {
+    guard let szDisplayName = try? hSubKey.QueryValue("DisplayName") else {
       return nil
     }
 
@@ -72,13 +72,13 @@ extension SwiftInstallation {
       return nil
     }
 
-    guard let szDisplayVersion = try? hSubKey.QueryValue(nil, "DisplayVersion"),
-        let szPublisher = try? hSubKey.QueryValue(nil, "Publisher") else {
+    guard let szDisplayVersion = try? hSubKey.QueryValue("DisplayVersion"),
+        let szPublisher = try? hSubKey.QueryValue("Publisher") else {
       return nil
     }
 
     let hVariables = try hSubKey.OpenKey("Variables", 0, KEY_READ)
-    guard let szInstallPath = try? hVariables.QueryValue(nil, "InstallRoot") else {
+    guard let szInstallPath = try? hVariables.QueryValue("InstallRoot") else {
       return nil
     }
 

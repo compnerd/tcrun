@@ -35,25 +35,22 @@ extension ManagedHandle where Value == HKEY {
     return ManagedHandle<HKEY>(owning: hkResult)
   }
 
-  internal func QueryValue(_ lpSubKey: String?,
-                           _ lpValue: String?) throws -> String {
-    try lpSubKey.withUTF16CString { lpSubKey in
-      try lpValue.withUTF16CString { lpValue in
-        var cbData: DWORD = 0
-        var lStatus: LSTATUS
+  internal func QueryValue(_ lpValue: String?) throws -> String {
+    try lpValue.withUTF16CString { lpValue in
+      var cbData: DWORD = 0
+      var lStatus: LSTATUS
 
-        lStatus = RegGetValueW(self.value, lpSubKey, lpValue, RRF_RT_REG_SZ,
-                               nil, nil, &cbData)
+      lStatus = RegGetValueW(self.value, nil, lpValue, RRF_RT_REG_SZ,
+                              nil, nil, &cbData)
+      guard lStatus == ERROR_SUCCESS else { throw WindowsError(lStatus) }
+
+      return try withUnsafeTemporaryAllocation(of: WCHAR.self,
+                                               capacity: Int(cbData)) {
+        lStatus = RegGetValueW(self.value, nil, lpValue, RRF_RT_REG_SZ,
+                               nil, $0.baseAddress, &cbData)
         guard lStatus == ERROR_SUCCESS else { throw WindowsError(lStatus) }
 
-        return try withUnsafeTemporaryAllocation(of: WCHAR.self,
-                                                 capacity: Int(cbData)) {
-          lStatus = RegGetValueW(self.value, lpSubKey, lpValue, RRF_RT_REG_SZ,
-                                 nil, $0.baseAddress, &cbData)
-          guard lStatus == ERROR_SUCCESS else { throw WindowsError(lStatus) }
-
-          return String(decodingCString: $0.baseAddress!, as: UTF16.self)
-        }
+        return String(decodingCString: $0.baseAddress!, as: UTF16.self)
       }
     }
   }
