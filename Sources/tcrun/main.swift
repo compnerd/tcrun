@@ -6,40 +6,6 @@ private import WindowsCore
 
 internal import Foundation
 
-extension Array where Element == SwiftInstallation {
-  internal func select(toolchain: String?, sdk: String?) -> SwiftInstallation? {
-    return first { installation in
-      let toolchain = toolchain.map { id in
-        installation.toolchains.contains { $0.identifier == id }
-      } ?? true
-
-      let sdk = sdk.map { name in
-        installation.platforms.contains { platform in
-          platform.SDKs.contains { $0.lastPathComponent == name }
-        }
-      } ?? true
-
-      return toolchain && sdk
-    }
-  }
-}
-
-private struct ToolchainResolver {
-  private let installations: [SwiftInstallation]
-
-  public init() throws {
-    self.installations = try SwiftInstallation.enumerate()
-  }
-
-  public func resolve(toolchain: String?, sdk: String?) -> SwiftInstallation? {
-    return installations.select(toolchain: toolchain, sdk: sdk)
-  }
-
-  public func forEach(_ body: (SwiftInstallation) throws -> Void) rethrows {
-    try installations.forEach(body)
-  }
-}
-
 @main
 private struct tcrun: ParsableCommand {
   static var configuration: CommandConfiguration {
@@ -125,13 +91,14 @@ private struct tcrun: ParsableCommand {
         sdk ?? URL(filePath: SDKROOT ?? "Windows.sdk").lastPathComponent
     let OPT_toolchain = toolchain ?? TOOLCHAINS
 
-    let resolver = try ToolchainResolver()
+    let installations = try SwiftInstallation.enumerate()
+
     if toolchains {
-      return resolver.forEach { print($0) }
+      return installations.forEach { print($0) }
     }
 
     guard let installation =
-        resolver.resolve(toolchain: OPT_toolchain, sdk: OPT_sdk) else {
+        installations.select(toolchain: OPT_toolchain, sdk: OPT_sdk) else {
       return
     }
 
