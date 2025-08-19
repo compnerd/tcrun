@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 private import ArgumentParser
-private import Foundation
-private import WinSDK
+private import WindowsCore
+
+internal import Foundation
 
 extension Array where Element == SwiftInstallation {
   fileprivate func select(toolchain: String?, sdk: String?)
@@ -31,6 +32,50 @@ extension SwiftInstallation {
     self.platforms.platforms.filter {
       $0.SDKs.filter { $0.lastPathComponent == sdk }.count > 0
     }
+  }
+}
+
+private struct ToolchainResolver {
+  private let installations: [SwiftInstallation]
+
+  public init() throws {
+    self.installations = try SwiftInstallation.enumerate()
+  }
+
+  public func resolve(toolchain: String?, sdk: String?) -> SwiftInstallation? {
+    return installations.select(toolchain: toolchain, sdk: sdk)
+  }
+
+  public func forEach(_ body: (SwiftInstallation) throws -> Void) rethrows {
+    try installations.forEach(body)
+  }
+}
+
+extension SwiftInstallation {
+  internal func platform(containing sdk: String) -> Platform? {
+    return platforms.containing(sdk: sdk).first
+  }
+}
+
+extension Toolchain {
+  internal func find(_ tool: String) throws -> String? {
+    try FindExecutable(tool, in: self.bindir.path)
+  }
+
+  internal func execute(_ tool: URL, sdk: String, arguments: [String]? = nil) throws -> Never {
+    let process = Process()
+    process.executableURL = tool
+    process.arguments = arguments
+
+    var environment = ProcessInfo.processInfo.environment
+    environment.updateValue(sdk, forKey: "SDKROOT")
+    environment.removeValue(forKey: "TOOLCHAINS")
+
+    process.environment = environment
+
+    try process.run()
+    process.waitUntilExit()
+    _exit(process.terminationStatus)
   }
 }
 
@@ -119,31 +164,27 @@ private struct tcrun: ParsableCommand {
         sdk ?? URL(filePath: SDKROOT ?? "Windows.sdk").lastPathComponent
     let OPT_toolchain = toolchain ?? TOOLCHAINS
 
-    let installations = try SwiftInstallation.enumerate()
-
+    let resolver = try ToolchainResolver()
     if toolchains {
-      for installation in installations { print(installation) }
+      return resolver.forEach { print($0) }
+    }
+
+    guard let installation =
+        resolver.resolve(toolchain: OPT_toolchain, sdk: OPT_sdk) else {
       return
     }
 
-    let installation =
-        installations.select(toolchain: OPT_toolchain, sdk: OPT_sdk)
-    guard let installation else { return }
-
-    guard let platform =
-        installation.platforms(containing: OPT_sdk).first else {
+    guard let platform = installation.platform(containing: OPT_sdk) else {
       return
     }
 
     if showSDKPlatformPath {
-      let root =
-          installation.platforms.root.appending(component: platform.id,
-                                                directoryHint: .isDirectory)
+      let root = installation.platforms.root.appending(component: platform.id,
+                                                       directoryHint: .isDirectory)
       return print(root.path)
     }
 
-    guard let sdk =
-        platform.SDKs.filter({ $0.lastPathComponent == OPT_sdk }).first else {
+    guard let sdk = platform.sdk(named: OPT_sdk) else {
       return
     }
 
@@ -151,34 +192,22 @@ private struct tcrun: ParsableCommand {
       return print(sdk.path)
     }
 
-    let toolchain =
-        installation.toolchains.first(where: {
-          OPT_toolchain == nil ? true : $0.identifier == OPT_toolchain
-        })
+    guard let toolchain = installation.toolchains.first(where: { toolchain in
+      OPT_toolchain == nil || toolchain.identifier == OPT_toolchain
+    }) else {
+      return
+    }
 
-    let tool =
-        try FindExecutable(tool, in: toolchain?.location.appending(components: "usr", "bin",
-                                                                   directoryHint: .isDirectory).path)
-    guard let tool, !tool.isEmpty else { return }
+    guard let tool = try toolchain.find(tool) else {
+      return
+    }
 
     switch mode {
     case .find:
       print(tool)
+
     case .run:
-      let process = Process()
-      process.executableURL = URL(filePath: tool)
-      process.arguments = arguments.isEmpty ? nil : arguments
-
-      var environment = ProcessInfo.processInfo.environment
-      environment.updateValue(sdk.path, forKey: "SDKROOT")
-      environment.removeValue(forKey: "TOOLCHAINS")
-
-      process.environment = environment
-
-      try process.run()
-      process.waitUntilExit()
-
-      _exit(process.terminationStatus)
+      try toolchain.execute(URL(filePath: tool), sdk: sdk.path, arguments: arguments)
     }
   }
 }
