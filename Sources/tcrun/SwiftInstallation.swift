@@ -40,7 +40,7 @@ private func EnumerateToolchains(in DEVELOPER_DIR: URL)
   let ToolchainsRoot =
       DEVELOPER_DIR.appending(component: "Toolchains",
                               directoryHint: .isDirectory)
-  let FileManager = FileManager .default
+  let FileManager = FileManager.default
   // FIXME: can we enumerate the toolchains from the installed packages?
   return try FileManager.contentsOfDirectory(at: ToolchainsRoot,
                                              includingPropertiesForKeys: nil)
