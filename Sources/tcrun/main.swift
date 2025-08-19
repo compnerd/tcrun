@@ -9,20 +9,19 @@ internal import Foundation
 extension Array where Element == SwiftInstallation {
   fileprivate func select(toolchain: String?, sdk: String?)
       -> SwiftInstallation? {
-    if let toolchain {
-      return self.first(where: {
-        $0.toolchains.filter { $0.identifier == toolchain }.count > 0
-      })
-    }
+    return first { installation in
+      let toolchain = toolchain.map { id in
+        installation.toolchains.contains { $0.identifier == id }
+      } ?? true
 
-    if let sdk {
-      return self.first(where: {
-        $0.platforms.platforms.flatMap(\.SDKs)
-                              .filter { $0.lastPathComponent == sdk }.count > 0
-      })
-    }
+      let sdk = sdk.map { name in
+        installation.platforms.contains { platform in
+          platform.SDKs.contains { $0.lastPathComponent == name }
+        }
+      } ?? true
 
-    return self.first
+      return toolchain && sdk
+    }
   }
 }
 
