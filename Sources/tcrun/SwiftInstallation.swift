@@ -165,3 +165,21 @@ extension SwiftInstallation: CustomStringConvertible {
     """
   }
 }
+
+extension Array where Element == SwiftInstallation {
+  internal func select(toolchain: String?, sdk: String?) -> SwiftInstallation? {
+    return first { installation in
+      let toolchain = toolchain.map { id in
+        installation.toolchains.contains { $0.identifier == id }
+      } ?? true
+
+      let sdk = sdk.map { name in
+        installation.platforms.contains { platform in
+          platform.SDKs.contains { $0.lastPathComponent == name }
+        }
+      } ?? true
+
+      return toolchain && sdk
+    }
+  }
+}
