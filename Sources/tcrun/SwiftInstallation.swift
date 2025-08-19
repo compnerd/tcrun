@@ -14,19 +14,19 @@ package struct SwiftInstallation {
 
 private func EnumeratePlatforms(in DEVELOPER_DIR: URL, version: Version)
     throws -> PlatformCollection {
-  let PlatformsVersioned: URL =
+  let PlatformsVersioned =
       DEVELOPER_DIR.appending(components: "Platforms", version.description,
                               directoryHint: .isDirectory)
-  let FileManager: Foundation.FileManager = .default
+  let FileManager = FileManager.default
   // FIXME: can we enumerate the platforms from the installed packages?
-  let platforms: [Platform] =
+  let platforms =
       try FileManager.contentsOfDirectory(at: PlatformsVersioned,
                                           includingPropertiesForKeys: nil)
           .filter { $0.lastPathComponent.hasSuffix(".platform") }
           .map { platform in
-            let root: URL = platform.appending(components: "Developer", "SDKs",
-                                                directoryHint: .isDirectory)
-            let SDKs: [URL] =
+            let root = platform.appending(components: "Developer", "SDKs",
+                                          directoryHint: .isDirectory)
+            let SDKs =
                 try FileManager.contentsOfDirectory(at: root,
                                                     includingPropertiesForKeys: nil)
                         .filter { $0.lastPathComponent.hasSuffix(".sdk") }
@@ -37,20 +37,20 @@ private func EnumeratePlatforms(in DEVELOPER_DIR: URL, version: Version)
 
 private func EnumerateToolchains(in DEVELOPER_DIR: URL)
     throws -> [Toolchain] {
-  let ToolchainsRoot: URL =
+  let ToolchainsRoot =
       DEVELOPER_DIR.appending(component: "Toolchains",
                               directoryHint: .isDirectory)
-  let FileManager: Foundation.FileManager = .default
+  let FileManager = FileManager .default
   // FIXME: can we enumerate the toolchains from the installed packages?
   return try FileManager.contentsOfDirectory(at: ToolchainsRoot,
                                              includingPropertiesForKeys: nil)
       .map { toolchain in
-        let ToolchainInfo: URL =
+        let ToolchainInfo =
             toolchain.appending(component: "ToolchainInfo.plist")
 
         var info: Dictionary<String, Any>?
         // FIXME: we should propagate an error if the toolchain image is invalid
-        if let data: Data = FileManager.contents(atPath: ToolchainInfo.path) {
+        if let data = FileManager.contents(atPath: ToolchainInfo.path) {
           info = try PropertyListSerialization.propertyList(from: data, format: nil) as? Dictionary<String, Any>
         }
 
@@ -63,13 +63,13 @@ extension SwiftInstallation {
   private static func QueryInstallation(_ hKey: ManagedHandle<HKEY>,
                                         _ lpSubKey: String, _ bIsSystem: Bool)
       throws -> SwiftInstallation? {
-    let hSubKey: ManagedHandle<HKEY> = try hKey.OpenKey(lpSubKey, 0, KEY_READ)
+    let hSubKey = try hKey.OpenKey(lpSubKey, 0, KEY_READ)
 
-    guard let szDisplayName: String =
+    guard let szDisplayName =
             try? hSubKey.QueryValue(nil, "DisplayName"),
-        let szDisplayVersion: String =
+        let szDisplayVersion =
             try? hSubKey.QueryValue(nil, "DisplayVersion"),
-        let szPublisher: String =
+        let szPublisher =
             try? hSubKey.QueryValue(nil, "Publisher") else {
       return nil
     }
@@ -78,18 +78,18 @@ extension SwiftInstallation {
       return nil
     }
 
-    guard let szInstallPath: String =
+    guard let szInstallPath =
         try? hSubKey.QueryValue("Variables", "InstallRoot") else {
       return nil
     }
 
-    guard let version: Version = Version(szDisplayVersion) else {
+    guard let version = Version(szDisplayVersion) else {
       throw WindowsError(ERROR_INVALID_DATA)
     }
 
     // TODO: map the bundle to packages and then use that to determine the
     // InstallRoot
-    let DEVELOPER_DIR: URL =
+    let DEVELOPER_DIR =
         URL(filePath: szInstallPath, directoryHint: .isDirectory)
     return try .init(system: bIsSystem, vendor: szPublisher, version: version,
                      toolchains: EnumerateToolchains(in: DEVELOPER_DIR),
@@ -100,19 +100,19 @@ extension SwiftInstallation {
   package static func enumerate() throws -> [SwiftInstallation] {
     var installations: [SwiftInstallation] = []
 
-    if let hKey: ManagedHandle<HKEY> =
-        try? .init(HKEY_LOCAL_MACHINE,
-                   #"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"#,
-                   0, KEY_READ) {
+    if let hKey =
+        try? ManagedHandle<HKEY>(HKEY_LOCAL_MACHINE,
+                                 #"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"#,
+                                 0, KEY_READ) {
       try installations.append(contentsOf: hKey.subkeys.compactMap {
         try QueryInstallation(hKey, $0, true)
       })
     }
 
-    if let hKey: ManagedHandle<HKEY> =
-        try? .init(HKEY_CURRENT_USER,
-                   #"Software\Microsoft\Windows\CurrentVersion\Uninstall"#,
-                   0, KEY_READ) {
+    if let hKey =
+        try? ManagedHandle<HKEY>(HKEY_CURRENT_USER,
+                                 #"Software\Microsoft\Windows\CurrentVersion\Uninstall"#,
+                                 0, KEY_READ) {
       try installations.append(contentsOf: hKey.subkeys.compactMap {
         try QueryInstallation(hKey, $0, false)
       })

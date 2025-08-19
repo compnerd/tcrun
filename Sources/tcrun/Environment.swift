@@ -6,9 +6,9 @@ internal import WindowsCore
 
 internal func GetEnvironmentVariable(_ name: String) throws -> String? {
   try name.withCString(encodedAs: UTF16.self) { szVariable in
-    let dwResult: DWORD = GetEnvironmentVariableW(szVariable, nil, 0)
+    let dwResult = GetEnvironmentVariableW(szVariable, nil, 0)
     if dwResult == 0 {
-      let dwError: DWORD = GetLastError()
+      let dwError = GetLastError()
       if dwError == ERROR_ENVVAR_NOT_FOUND { return nil }
       throw WindowsError(dwError)
     }
