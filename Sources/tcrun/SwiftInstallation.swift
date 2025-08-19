@@ -8,18 +8,18 @@ package struct SwiftInstallation {
   let system: Bool
   let vendor: String
   let version: Version
-  let toolchains: [(identifier: String, location: URL)]
-  let platforms: (root: URL, platforms: [(id: String, SDKs: [URL])])
+  let toolchains: [Toolchain]
+  let platforms: PlatformCollection
 }
 
 private func EnumeratePlatforms(in DEVELOPER_DIR: URL, version: Version)
-    throws -> (root: URL, platforms: [(id: String, SDKs: [URL])]) {
+    throws -> PlatformCollection {
   let PlatformsVersioned: URL =
       DEVELOPER_DIR.appending(components: "Platforms", version.description,
                               directoryHint: .isDirectory)
   let FileManager: Foundation.FileManager = .default
   // FIXME: can we enumerate the platforms from the installed packages?
-  let platforms: [(id: String, SDKs: [URL])] =
+  let platforms: [Platform] =
       try FileManager.contentsOfDirectory(at: PlatformsVersioned,
                                           includingPropertiesForKeys: nil)
           .filter { $0.lastPathComponent.hasSuffix(".platform") }
@@ -30,13 +30,13 @@ private func EnumeratePlatforms(in DEVELOPER_DIR: URL, version: Version)
                 try FileManager.contentsOfDirectory(at: root,
                                                     includingPropertiesForKeys: nil)
                         .filter { $0.lastPathComponent.hasSuffix(".sdk") }
-            return (id: platform.lastPathComponent, SDKs: SDKs)
+            return Platform(id: platform.lastPathComponent, SDKs: SDKs)
           }
-  return (root: PlatformsVersioned, platforms: platforms)
+  return PlatformCollection(root: PlatformsVersioned, platforms: platforms)
 }
 
 private func EnumerateToolchains(in DEVELOPER_DIR: URL)
-    throws -> [(identifier: String, location: URL)] {
+    throws -> [Toolchain] {
   let ToolchainsRoot: URL =
       DEVELOPER_DIR.appending(component: "Toolchains",
                               directoryHint: .isDirectory)
@@ -49,12 +49,13 @@ private func EnumerateToolchains(in DEVELOPER_DIR: URL)
             toolchain.appending(component: "ToolchainInfo.plist")
 
         var info: Dictionary<String, Any>?
+        // FIXME: we should propagate an error if the toolchain image is invalid
         if let data: Data = FileManager.contents(atPath: ToolchainInfo.path) {
           info = try PropertyListSerialization.propertyList(from: data, format: nil) as? Dictionary<String, Any>
         }
 
-        return (identifier: info?["Identifier"] as? String ?? "",
-                location: toolchain)
+        return Toolchain(identifier: info?["Identifier"] as? String ?? "",
+                         location: toolchain)
       }
 }
 

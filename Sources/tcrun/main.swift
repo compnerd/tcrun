@@ -27,7 +27,7 @@ extension Array where Element == SwiftInstallation {
 
 extension SwiftInstallation {
   fileprivate func platforms(containing sdk: String)
-      -> [(id: String, SDKs: [URL])] {
+      -> [Platform] {
     self.platforms.platforms.filter {
       $0.SDKs.filter { $0.lastPathComponent == sdk }.count > 0
     }
@@ -130,7 +130,7 @@ private struct tcrun: ParsableCommand {
         installations.select(toolchain: OPT_toolchain, sdk: OPT_sdk)
     guard let installation else { return }
 
-    guard let platform: (id: String, SDKs: [URL]) =
+    guard let platform: Platform =
         installation.platforms(containing: OPT_sdk).first else { return }
 
     if showSDKPlatformPath {
@@ -149,7 +149,7 @@ private struct tcrun: ParsableCommand {
       return print(sdk.path)
     }
 
-    let toolchain: (identifier: String, location: URL)? =
+    let toolchain: Toolchain? =
         installation.toolchains.first(where: {
           OPT_toolchain == nil ? true : $0.identifier == OPT_toolchain
         })
