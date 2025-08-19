@@ -35,8 +35,7 @@ private func EnumeratePlatforms(in DEVELOPER_DIR: URL, version: Version)
   return PlatformCollection(root: PlatformsVersioned, platforms: platforms)
 }
 
-private func EnumerateToolchains(in DEVELOPER_DIR: URL)
-    throws -> [Toolchain] {
+private func EnumerateToolchains(in DEVELOPER_DIR: URL) throws -> [Toolchain] {
   let ToolchainsRoot =
       DEVELOPER_DIR.appending(component: "Toolchains",
                               directoryHint: .isDirectory)
@@ -120,6 +119,18 @@ extension SwiftInstallation {
 
     // TODO(compnerd): sort by version number
     return installations
+  }
+}
+
+extension SwiftInstallation {
+  internal func platforms(containing sdk: String) -> [Platform] {
+    self.platforms.platforms.filter {
+      $0.SDKs.filter { $0.lastPathComponent == sdk }.count > 0
+    }
+  }
+
+  internal func platform(containing sdk: String) -> Platform? {
+    return platforms.containing(sdk: sdk).first
   }
 }
 

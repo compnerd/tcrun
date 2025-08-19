@@ -7,8 +7,7 @@ private import WindowsCore
 internal import Foundation
 
 extension Array where Element == SwiftInstallation {
-  fileprivate func select(toolchain: String?, sdk: String?)
-      -> SwiftInstallation? {
+  internal func select(toolchain: String?, sdk: String?) -> SwiftInstallation? {
     return first { installation in
       let toolchain = toolchain.map { id in
         installation.toolchains.contains { $0.identifier == id }
@@ -21,15 +20,6 @@ extension Array where Element == SwiftInstallation {
       } ?? true
 
       return toolchain && sdk
-    }
-  }
-}
-
-extension SwiftInstallation {
-  fileprivate func platforms(containing sdk: String)
-      -> [Platform] {
-    self.platforms.platforms.filter {
-      $0.SDKs.filter { $0.lastPathComponent == sdk }.count > 0
     }
   }
 }
@@ -47,34 +37,6 @@ private struct ToolchainResolver {
 
   public func forEach(_ body: (SwiftInstallation) throws -> Void) rethrows {
     try installations.forEach(body)
-  }
-}
-
-extension SwiftInstallation {
-  internal func platform(containing sdk: String) -> Platform? {
-    return platforms.containing(sdk: sdk).first
-  }
-}
-
-extension Toolchain {
-  internal func find(_ tool: String) throws -> String? {
-    try FindExecutable(tool, in: self.bindir.path)
-  }
-
-  internal func execute(_ tool: URL, sdk: String, arguments: [String]? = nil) throws -> Never {
-    let process = Process()
-    process.executableURL = tool
-    process.arguments = arguments
-
-    var environment = ProcessInfo.processInfo.environment
-    environment.updateValue(sdk, forKey: "SDKROOT")
-    environment.removeValue(forKey: "TOOLCHAINS")
-
-    process.environment = environment
-
-    try process.run()
-    process.waitUntilExit()
-    _exit(process.terminationStatus)
   }
 }
 
@@ -206,7 +168,8 @@ private struct tcrun: ParsableCommand {
       print(tool)
 
     case .run:
-      try toolchain.execute(URL(filePath: tool), sdk: sdk.path, arguments: arguments)
+      let tool = URL(filePath: tool)
+      try toolchain.execute(tool, sdk: sdk.path, arguments: arguments)
     }
   }
 }
