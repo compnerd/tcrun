@@ -60,7 +60,7 @@ extension ManagedHandle where Value == HKEY {
 }
 
 extension ManagedHandle where Value == HKEY {
-  internal class SubKeyIterator: IteratorProtocol, Sequence {
+  internal final class SubKeyIterator: IteratorProtocol, Sequence {
     public typealias Element = String
 
     private var key: ManagedHandle<HKEY>
