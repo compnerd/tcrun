@@ -7,7 +7,7 @@ internal import WindowsCore
 extension HKEY: HandleValue {
   internal static func release(_ handle: HKEY?) {
     if let handle {
-      let lStatus: LSTATUS = RegCloseKey(handle)
+      let lStatus = RegCloseKey(handle)
       assert(lStatus == ERROR_SUCCESS,
              "failed to close key: \(WindowsError(lStatus))")
     }
@@ -18,7 +18,7 @@ extension ManagedHandle where Value == HKEY {
   internal convenience init(_ hKey: HKEY, _ lpSubKey: String?,
                             _ ulOptions: DWORD, _ samDesired: REGSAM) throws {
     var hkResult: HKEY?
-    let lStatus: LSTATUS = lpSubKey.withUTF16CString {
+    let lStatus = lpSubKey.withUTF16CString {
       RegOpenKeyExW(hKey, $0, ulOptions, samDesired, &hkResult)
     }
     guard lStatus == ERROR_SUCCESS else { throw WindowsError(lStatus) }
@@ -28,7 +28,7 @@ extension ManagedHandle where Value == HKEY {
   internal func OpenKey(_ lpSubKey: String?, _ ulOptions: DWORD,
                         _ samDesired: REGSAM) throws -> ManagedHandle<HKEY> {
     var hkResult: HKEY?
-    let lStatus: LSTATUS = lpSubKey.withUTF16CString {
+    let lStatus = lpSubKey.withUTF16CString {
       RegOpenKeyExW(self.value, $0, ulOptions, samDesired, &hkResult)
     }
     guard lStatus == ERROR_SUCCESS else { throw WindowsError(lStatus) }
@@ -73,7 +73,7 @@ extension ManagedHandle where Value == HKEY {
       self.key = key
 
       var cbMaxSubKeyLen: DWORD = 0
-      let lStatus: LSTATUS =
+      let lStatus =
           RegQueryInfoKeyW(key.value, nil, nil, nil, &cSubKeys, &cbMaxSubKeyLen,
                            nil, nil, nil, nil, nil, nil)
       guard lStatus == ERROR_SUCCESS else { throw WindowsError(lStatus) }
@@ -89,7 +89,7 @@ extension ManagedHandle where Value == HKEY {
     internal func next() -> String? {
       if dwIndex >= cSubKeys { return nil }
 
-      var cchName: DWORD = DWORD(szBuffer.count)
+      var cchName = DWORD(szBuffer.count)
       // FIXME: we should capture the failure here
       _ = RegEnumKeyExW(key.value, dwIndex, szBuffer.baseAddress, &cchName,
                         nil, nil, nil, nil)

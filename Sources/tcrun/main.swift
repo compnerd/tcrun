@@ -112,12 +112,12 @@ private struct tcrun: ParsableCommand {
   mutating func run() throws {
     guard !version else { return print("tcrun \(version)") }
 
-    let TOOLCHAINS: String? = try GetEnvironmentVariable("TOOLCHAINS")
-    let SDKROOT: String? = try GetEnvironmentVariable("SDKROOT")
+    let TOOLCHAINS = try GetEnvironmentVariable("TOOLCHAINS")
+    let SDKROOT = try GetEnvironmentVariable("SDKROOT")
 
-    let OPT_sdk: String =
+    let OPT_sdk =
         sdk ?? URL(filePath: SDKROOT ?? "Windows.sdk").lastPathComponent
-    let OPT_toolchain: String? = toolchain ?? TOOLCHAINS
+    let OPT_toolchain = toolchain ?? TOOLCHAINS
 
     let installations = try SwiftInstallation.enumerate()
 
@@ -126,21 +126,23 @@ private struct tcrun: ParsableCommand {
       return
     }
 
-    let installation: SwiftInstallation? =
+    let installation =
         installations.select(toolchain: OPT_toolchain, sdk: OPT_sdk)
     guard let installation else { return }
 
-    guard let platform: Platform =
-        installation.platforms(containing: OPT_sdk).first else { return }
+    guard let platform =
+        installation.platforms(containing: OPT_sdk).first else {
+      return
+    }
 
     if showSDKPlatformPath {
-      let root: URL = 
+      let root =
           installation.platforms.root.appending(component: platform.id,
                                                 directoryHint: .isDirectory)
       return print(root.path)
     }
 
-    guard let sdk: URL =
+    guard let sdk =
         platform.SDKs.filter({ $0.lastPathComponent == OPT_sdk }).first else {
       return
     }
@@ -149,12 +151,12 @@ private struct tcrun: ParsableCommand {
       return print(sdk.path)
     }
 
-    let toolchain: Toolchain? =
+    let toolchain =
         installation.toolchains.first(where: {
           OPT_toolchain == nil ? true : $0.identifier == OPT_toolchain
         })
 
-    let tool: String? =
+    let tool =
         try FindExecutable(tool, in: toolchain?.location.appending(components: "usr", "bin",
                                                                    directoryHint: .isDirectory).path)
     guard let tool, !tool.isEmpty else { return }
@@ -163,7 +165,7 @@ private struct tcrun: ParsableCommand {
     case .find:
       print(tool)
     case .run:
-      let process: Process = Process()
+      let process = Process()
       process.executableURL = URL(filePath: tool)
       process.arguments = arguments.isEmpty ? nil : arguments
 
