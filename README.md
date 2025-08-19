@@ -11,9 +11,9 @@ The SDK defaults to the boot system OS SDK (`Windows.sdk`), and can be specified
 ## Synopsis
 
 ```bash
-tcrun [-sdk _SDK_] -f <tool_name>
-tcrun [-sdk _SDK_] <tool_name> [tool_arguments]
-tcrun [-toolchain _ID_] <tool_name> [tool_arguments]
+tcrun [-sdk SDK] -f <tool_name>
+tcrun [-sdk SDK] <tool_name> [tool_arguments]
+tcrun [-toolchain ID] <tool_name> [tool_arguments]
 ```
 
 ## Usage Patterns
@@ -72,7 +72,7 @@ tcrun -toolchains
 
 Use a specific toolchain:
 ```bash
-tcrun -toolchain org.swift.59202411a swift build
+tcrun -toolchain org.compnerd.dt.toolchain.20250623.0-asserts swift build
 ```
 
 ### SDK Information
