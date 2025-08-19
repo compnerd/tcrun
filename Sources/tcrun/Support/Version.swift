@@ -2,17 +2,17 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 internal struct Version {
-  let major: Int
-  let minor: Int
-  let patch: Int
+  public let major: Int
+  public let minor: Int
+  public let patch: Int
 
-  init(major: Int, minor: Int, patch: Int) {
+  public init(major: Int, minor: Int, patch: Int) {
     self.major = major
     self.minor = minor
     self.patch = patch
   }
 
-  init?(_ version: String) {
+  public init?(_ version: String) {
     let components = version.split(separator: "-")[0].split(separator: ".").compactMap { Int($0) }
     guard components.count == 3 else {
       return nil
@@ -24,7 +24,7 @@ internal struct Version {
 }
 
 extension Version: CustomStringConvertible {
-  var description: String {
+  public var description: String {
     "\(major).\(minor).\(patch)"
   }
 }
