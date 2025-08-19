@@ -14,11 +14,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - branch: swift-6.1-branch
-            tag: 6.1-DEVELOPMENT-SNAPSHOT-2025-01-23-a
-
           - branch: development
-            tag: DEVELOPMENT-SNAPSHOT-2025-01-10-a
+            tag: DEVELOPMENT-SNAPSHOT-2025-08-14-a
 
     name: Swift ${{ matrix.tag }}
 
