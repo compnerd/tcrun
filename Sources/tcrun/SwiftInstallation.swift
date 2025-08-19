@@ -138,7 +138,7 @@ extension SwiftInstallation: CustomStringConvertible {
       )
       Platforms:
       \(
-        platforms.platforms.map {
+        platforms.map {
           """
             - \($0.id)
                   SDKs:
