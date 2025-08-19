@@ -8,11 +8,11 @@ internal import Foundation
 
 @main
 private struct tcrun: ParsableCommand {
-  static var configuration: CommandConfiguration {
+  public static var configuration: CommandConfiguration {
     CommandConfiguration(abstract: "Swift Toolchain Execution Helper")
   }
 
-  enum Mode: EnumerableFlag {
+  public enum Mode: EnumerableFlag {
     case find
     case run
 
@@ -37,40 +37,40 @@ private struct tcrun: ParsableCommand {
 
   @Flag(name: [.customLong("version", withSingleDash: true), .long],
         help: "Print the version of the tool")
-  var version: Bool = false
+  public var version: Bool = false
 
   @Flag(name: [.customLong("show-sdk-path", withSingleDash: true), .long],
         help: "Print the path to the SDK")
-  var showSDKPath: Bool = false
+  public var showSDKPath: Bool = false
 
   @Flag(name: [.customLong("show-sdk-platform-path", withSingleDash: true),
                .long],
         help: "Print the path to the SDK platform")
-  var showSDKPlatformPath: Bool = false
+  public var showSDKPlatformPath: Bool = false
 
   // FIXME: should this be moved into a `toolchain-select` tool?
   @Flag(name: [.customLong("toolchains", withSingleDash: true), .long],
         help: "List the available toolchains")
-  var toolchains: Bool = false
+  public var toolchains: Bool = false
 
   @Option(name: .customLong("sdk", withSingleDash: true),
           help: "Use the specified SDK")
-  var sdk: String?
+  public var sdk: String?
 
   @Option(name: .customLong("toolchain", withSingleDash: true),
           help: "Use the specified toolchain")
-  var toolchain: String?
+  public var toolchain: String?
 
   @Flag()
-  var mode: Mode = .run
+  public var mode: Mode = .run
 
   @Argument
-  var tool: String = ""
+  public var tool: String = ""
 
   @Argument(parsing: .remaining)
-  var arguments: [String] = []
+  public var arguments: [String] = []
 
-  func validate() throws {
+  public func validate() throws {
     guard !version else { return }
 
     guard !showSDKPath, !showSDKPlatformPath else { return }
@@ -81,7 +81,7 @@ private struct tcrun: ParsableCommand {
     }
   }
 
-  mutating func run() throws {
+  public mutating func run() throws {
     guard !version else { return print("tcrun \(version)") }
 
     let TOOLCHAINS = try GetEnvironmentVariable("TOOLCHAINS")
