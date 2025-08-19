@@ -9,12 +9,15 @@ let _ =
             ],
             dependencies: [
               .package(url: "https://github.com/apple/swift-argument-parser",
-                        from: "1.5.0"),
+                       from: "1.5.0"),
+              .package(url: "https://github.com/compnerd/swift-platform-core",
+                       branch: "main"),
             ],
             targets: [
               .executableTarget(name: "tcrun",
                                 dependencies: [
-                                  .product(name: "ArgumentParser", package: "swift-argument-parser")
+                                  .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                                  .product(name: "WindowsCore", package: "swift-platform-core"),
                                 ],
                                 swiftSettings: [
                                   .enableExperimentalFeature("AccessLevelOnImport"),
