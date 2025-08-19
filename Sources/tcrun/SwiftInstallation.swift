@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 internal import Foundation
-internal import WinSDK
+internal import WindowsCore
 
 package struct SwiftInstallation {
   let system: Bool
@@ -83,7 +83,7 @@ extension SwiftInstallation {
     }
 
     guard let version: Version = Version(szDisplayVersion) else {
-      throw Error(win32: ERROR_INVALID_DATA)
+      throw WindowsError(ERROR_INVALID_DATA)
     }
 
     // TODO: map the bundle to packages and then use that to determine the

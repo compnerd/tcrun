@@ -2,14 +2,14 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 internal import Foundation
-internal import WinSDK
+internal import WindowsCore
 
 extension HKEY: HandleValue {
   internal static func release(_ handle: HKEY?) {
     if let handle {
       let lStatus: LSTATUS = RegCloseKey(handle)
       assert(lStatus == ERROR_SUCCESS,
-             "failed to close key: \(Error(win32: lStatus))")
+             "failed to close key: \(WindowsError(lStatus))")
     }
   }
 }
@@ -21,7 +21,7 @@ extension ManagedHandle where Value == HKEY {
     let lStatus: LSTATUS = lpSubKey.withUTF16CString {
       RegOpenKeyExW(hKey, $0, ulOptions, samDesired, &hkResult)
     }
-    guard lStatus == ERROR_SUCCESS else { throw Error(win32: lStatus) }
+    guard lStatus == ERROR_SUCCESS else { throw WindowsError(lStatus) }
     self.init(owning: hkResult)
   }
 
@@ -31,7 +31,7 @@ extension ManagedHandle where Value == HKEY {
     let lStatus: LSTATUS = lpSubKey.withUTF16CString {
       RegOpenKeyExW(self.value, $0, ulOptions, samDesired, &hkResult)
     }
-    guard lStatus == ERROR_SUCCESS else { throw Error(win32: lStatus) }
+    guard lStatus == ERROR_SUCCESS else { throw WindowsError(lStatus) }
     return ManagedHandle<HKEY>(owning: hkResult)
   }
 
@@ -44,13 +44,13 @@ extension ManagedHandle where Value == HKEY {
 
         lStatus = RegGetValueW(self.value, lpSubKey, lpValue, RRF_RT_REG_SZ,
                                nil, nil, &cbData)
-        guard lStatus == ERROR_SUCCESS else { throw Error(win32: lStatus) }
+        guard lStatus == ERROR_SUCCESS else { throw WindowsError(lStatus) }
 
         return try withUnsafeTemporaryAllocation(of: WCHAR.self,
                                                  capacity: Int(cbData)) {
           lStatus = RegGetValueW(self.value, lpSubKey, lpValue, RRF_RT_REG_SZ,
                                  nil, $0.baseAddress, &cbData)
-          guard lStatus == ERROR_SUCCESS else { throw Error(win32: lStatus) }
+          guard lStatus == ERROR_SUCCESS else { throw WindowsError(lStatus) }
 
           return String(decodingCString: $0.baseAddress!, as: UTF16.self)
         }
@@ -76,7 +76,7 @@ extension ManagedHandle where Value == HKEY {
       let lStatus: LSTATUS =
           RegQueryInfoKeyW(key.value, nil, nil, nil, &cSubKeys, &cbMaxSubKeyLen,
                            nil, nil, nil, nil, nil, nil)
-      guard lStatus == ERROR_SUCCESS else { throw Error(win32: lStatus) }  
+      guard lStatus == ERROR_SUCCESS else { throw WindowsError(lStatus) }
 
       self.dwIndex = 0
       szBuffer = .allocate(capacity: Int(cbMaxSubKeyLen + 1))
