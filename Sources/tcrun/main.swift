@@ -86,18 +86,18 @@ private struct tcrun: ParsableCommand {
       return print("tcrun \(PackageVersion)")
     }
 
+    let installations = try SwiftInstallation.enumerate()
+
+    if toolchains {
+      return installations.forEach { print($0) }
+    }
+
     let TOOLCHAINS = try GetEnvironmentVariable("TOOLCHAINS")
     let SDKROOT = try GetEnvironmentVariable("SDKROOT")
 
     let OPT_sdk =
         sdk ?? URL(filePath: SDKROOT ?? "Windows.sdk").lastPathComponent
     let OPT_toolchain = toolchain ?? TOOLCHAINS
-
-    let installations = try SwiftInstallation.enumerate()
-
-    if toolchains {
-      return installations.forEach { print($0) }
-    }
 
     guard let installation =
         installations.select(toolchain: OPT_toolchain, sdk: OPT_sdk) else {
