@@ -4,6 +4,11 @@
 internal import Foundation
 internal import WindowsCore
 
+private nonisolated(unsafe) let kPaths = [
+  (HKEY_LOCAL_MACHINE, #"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"#),
+  (HKEY_CURRENT_USER, #"Software\Microsoft\Windows\CurrentVersion\Uninstall"#),
+]
+
 package struct SwiftInstallation {
   let system: Bool
   let vendor: String
@@ -97,27 +102,16 @@ extension SwiftInstallation {
   }
 
   package static func enumerate() throws -> [SwiftInstallation] {
-    var installations: [SwiftInstallation] = []
-
-    if let hKey =
-        try? ManagedHandle<HKEY>(HKEY_LOCAL_MACHINE,
-                                 #"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"#,
-                                 0, KEY_READ) {
-      try installations.append(contentsOf: hKey.subkeys.compactMap {
-        try QueryInstallation(hKey, $0, true)
-      })
+    return try kPaths.compactMap { hive, path in
+      guard let hKey = try? ManagedHandle<HKEY>(hive, path, 0, KEY_READ) else {
+        return Array<SwiftInstallation>()
+      }
+      return try hKey.subkeys.compactMap {
+        try QueryInstallation(hKey, $0, hive == HKEY_LOCAL_MACHINE)
+      }
     }
-
-    if let hKey =
-        try? ManagedHandle<HKEY>(HKEY_CURRENT_USER,
-                                 #"Software\Microsoft\Windows\CurrentVersion\Uninstall"#,
-                                 0, KEY_READ) {
-      try installations.append(contentsOf: hKey.subkeys.compactMap {
-        try QueryInstallation(hKey, $0, false)
-      })
-    }
-
-    return installations.sorted { $0.version > $1.version }
+    .flatMap { $0 }
+    .sorted { $0.version > $1.version }
   }
 }
 
