@@ -22,19 +22,27 @@ private func EnumeratePlatforms(in DEVELOPER_DIR: URL, version: Version)
   let PlatformsVersioned =
       DEVELOPER_DIR.appending(components: "Platforms", version.description,
                               directoryHint: .isDirectory)
-  let FileManager = FileManager.default
   // FIXME: can we enumerate the platforms from the installed packages?
   let platforms =
-      try FileManager.contentsOfDirectory(at: PlatformsVersioned,
-                                          includingPropertiesForKeys: nil)
-          .filter { $0.lastPathComponent.hasSuffix(".platform") }
+      try FileManager.default
+          .contentsOfDirectory(at: PlatformsVersioned,
+                               includingPropertiesForKeys: [.isDirectoryKey])
+          .lazy
+          .filter { entry in
+            try entry.lastPathComponent.hasSuffix(".platform") &&
+                entry.resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true
+          }
           .map { platform in
             let root = platform.appending(components: "Developer", "SDKs",
                                           directoryHint: .isDirectory)
             let SDKs =
-                try FileManager.contentsOfDirectory(at: root,
-                                                    includingPropertiesForKeys: nil)
-                        .filter { $0.lastPathComponent.hasSuffix(".sdk") }
+                try FileManager.default
+                    .contentsOfDirectory(at: root,
+                                         includingPropertiesForKeys: [.isDirectoryKey])
+                    .filter { entry in
+                      try entry.lastPathComponent.hasSuffix(".sdk") &&
+                          entry.resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true
+                    }
             return Platform(id: platform.lastPathComponent, SDKs: SDKs)
           }
   return PlatformCollection(root: PlatformsVersioned, platforms: platforms)
@@ -44,21 +52,26 @@ private func EnumerateToolchains(in DEVELOPER_DIR: URL) throws -> [Toolchain] {
   let ToolchainsRoot =
       DEVELOPER_DIR.appending(component: "Toolchains",
                               directoryHint: .isDirectory)
-  let FileManager = FileManager.default
   // FIXME: can we enumerate the toolchains from the installed packages?
-  return try FileManager.contentsOfDirectory(at: ToolchainsRoot,
-                                             includingPropertiesForKeys: nil)
+  return try FileManager.default
+      .contentsOfDirectory(at: ToolchainsRoot,
+                           includingPropertiesForKeys: [.isDirectoryKey])
+      .lazy
+      .filter {
+        (try? $0.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
+      }
       .map { toolchain in
         let ToolchainInfo =
             toolchain.appending(component: "ToolchainInfo.plist")
 
-        var info: Dictionary<String, Any>?
-        // FIXME: we should propagate an error if the toolchain image is invalid
-        if let data = FileManager.contents(atPath: ToolchainInfo.path) {
-          info = try PropertyListSerialization.propertyList(from: data, format: nil) as? Dictionary<String, Any>
+        guard let info =
+            try PropertyListSerialization.propertyList(from: Data(contentsOf: ToolchainInfo),
+                                                       format: nil) as? Dictionary<String, Any> else {
+          throw WindowsError(ERROR_INVALID_DATA)
         }
 
-        return Toolchain(identifier: info?["Identifier"] as? String ?? "",
+        // FIXME: we should propagate an error if the toolchain image is invalid
+        return Toolchain(identifier: info["Identifier"] as? String ?? "",
                          location: toolchain)
       }
 }
