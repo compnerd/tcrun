@@ -82,7 +82,9 @@ private struct tcrun: ParsableCommand {
   }
 
   public mutating func run() throws {
-    guard !version else { return print("tcrun \(version)") }
+    if version {
+      return print("tcrun \(PackageVersion)")
+    }
 
     let TOOLCHAINS = try GetEnvironmentVariable("TOOLCHAINS")
     let SDKROOT = try GetEnvironmentVariable("SDKROOT")
