@@ -44,13 +44,12 @@ extension ManagedHandle where Value == HKEY {
                               nil, nil, &cbData)
       guard lStatus == ERROR_SUCCESS else { throw WindowsError(lStatus) }
 
-      return try withUnsafeTemporaryAllocation(of: WCHAR.self,
-                                               capacity: Int(cbData)) {
+      let capacity = Int(cbData / DWORD(MemoryLayout<WCHAR>.stride))
+      return try String(unsafeUninitializedCapacity: capacity) { buffer in
         lStatus = RegGetValueW(self.value, nil, lpValue, RRF_RT_REG_SZ,
-                               nil, $0.baseAddress, &cbData)
+                               nil, buffer.baseAddress, &cbData)
         guard lStatus == ERROR_SUCCESS else { throw WindowsError(lStatus) }
-
-        return String(decodingCString: $0.baseAddress!, as: UTF16.self)
+        return capacity - 1
       }
     }
   }
