@@ -81,6 +81,42 @@ private struct tcrun: ParsableCommand {
     }
   }
 
+  private mutating func run(selecting installation: SwiftInstallation,
+                            toolchain: String?, sdk: String) throws {
+    guard let platform = installation.platform(containing: sdk) else {
+      return
+    }
+
+    if showSDKPlatformPath {
+      let root = installation.platforms.root.appending(component: platform.id,
+                                                       directoryHint: .isDirectory)
+      return print(root.path)
+    }
+
+    guard let sdk = platform.sdk(named: sdk) else { return }
+
+    if showSDKPath {
+      return print(sdk.path)
+    }
+
+    guard let toolchain = installation.toolchain(matching: toolchain) else {
+      return
+    }
+
+    guard let tool = try toolchain.find(tool) else {
+      return
+    }
+
+    switch mode {
+    case .find:
+      print(tool)
+
+    case .run:
+      let tool = URL(filePath: tool)
+      try toolchain.execute(tool, sdk: sdk.path, arguments: arguments)
+    }
+  }
+
   public mutating func run() throws {
     if version {
       return print("tcrun \(PackageVersion)")
@@ -100,45 +136,11 @@ private struct tcrun: ParsableCommand {
     let OPT_toolchain = toolchain ?? TOOLCHAINS
 
     guard let installation =
-        installations.select(toolchain: OPT_toolchain, sdk: OPT_sdk) else {
+        installations.matching(toolchain: OPT_toolchain, sdk: OPT_sdk) else {
       return
     }
 
-    guard let platform = installation.platform(containing: OPT_sdk) else {
-      return
-    }
-
-    if showSDKPlatformPath {
-      let root = installation.platforms.root.appending(component: platform.id,
-                                                       directoryHint: .isDirectory)
-      return print(root.path)
-    }
-
-    guard let sdk = platform.sdk(named: OPT_sdk) else {
-      return
-    }
-
-    if showSDKPath {
-      return print(sdk.path)
-    }
-
-    guard let toolchain = installation.toolchains.first(where: { toolchain in
-      OPT_toolchain == nil || toolchain.identifier == OPT_toolchain
-    }) else {
-      return
-    }
-
-    guard let tool = try toolchain.find(tool) else {
-      return
-    }
-
-    switch mode {
-    case .find:
-      print(tool)
-
-    case .run:
-      let tool = URL(filePath: tool)
-      try toolchain.execute(tool, sdk: sdk.path, arguments: arguments)
-    }
+    return try run(selecting: installation,
+                   toolchain: OPT_toolchain, sdk: OPT_sdk)
   }
 }
