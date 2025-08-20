@@ -40,8 +40,8 @@ extension ManagedHandle where Value == HKEY {
       var cbData: DWORD = 0
       var lStatus: LSTATUS
 
-      lStatus = RegGetValueW(self.value, nil, lpValue, RRF_RT_REG_SZ,
-                              nil, nil, &cbData)
+      lStatus = RegGetValueW(self.value, nil, lpValue, RRF_RT_REG_SZ, nil, nil,
+                             &cbData)
       guard lStatus == ERROR_SUCCESS else { throw WindowsError(lStatus) }
 
       return try withUnsafeTemporaryAllocation(byteCount: Int(cbData),
@@ -61,43 +61,43 @@ extension ManagedHandle where Value == HKEY {
 }
 
 extension ManagedHandle where Value == HKEY {
-  internal final class SubKeyIterator: IteratorProtocol, Sequence {
+  internal struct SubKeyIterator: IteratorProtocol, Sequence {
     public typealias Element = String
 
-    private var key: ManagedHandle<HKEY>
-    private var cSubKeys: DWORD = 0
+    private let key: ManagedHandle<HKEY>
+    private let cSubKeys: DWORD
+    private let cbMaxSubKeyLen: DWORD
 
-    private var dwIndex: DWORD
-    private var szBuffer: UnsafeMutableBufferPointer<WCHAR>
+    private var dwIndex: DWORD = 0
 
     internal init(_ key: ManagedHandle<HKEY>) throws {
       self.key = key
 
+      var cSubKeys: DWORD = 0
       var cbMaxSubKeyLen: DWORD = 0
       let lStatus =
           RegQueryInfoKeyW(key.value, nil, nil, nil, &cSubKeys, &cbMaxSubKeyLen,
                            nil, nil, nil, nil, nil, nil)
       guard lStatus == ERROR_SUCCESS else { throw WindowsError(lStatus) }
 
-      self.dwIndex = 0
-      szBuffer = .allocate(capacity: Int(cbMaxSubKeyLen + 1))
+      self.cSubKeys = cSubKeys
+      self.cbMaxSubKeyLen = cbMaxSubKeyLen
     }
 
-    deinit {
-      szBuffer.deallocate()
-    }
+    internal mutating func next() -> String? {
+      guard dwIndex < cSubKeys else { return nil }
 
-    internal func next() -> String? {
-      if dwIndex >= cSubKeys { return nil }
-
-      var cchName = DWORD(szBuffer.count)
-      // FIXME: we should capture the failure here
-      _ = RegEnumKeyExW(key.value, dwIndex, szBuffer.baseAddress, &cchName,
-                        nil, nil, nil, nil)
-      defer { dwIndex += 1 }
-
-      return String(decoding: Array<WCHAR>(szBuffer.prefix(through: Int(cchName))),
-                    as: UTF16.self)
+      return withUnsafeTemporaryAllocation(of: WCHAR.self, capacity: Int(cbMaxSubKeyLen + 1)) {
+        guard let baseAddress = $0.baseAddress else { return nil }
+        var cchName = DWORD($0.count)
+        let lStatus = RegEnumKeyExW(key.value, dwIndex, baseAddress, &cchName,
+                                    nil, nil, nil, nil)
+        defer { dwIndex += 1 }
+        guard lStatus == ERROR_SUCCESS else { return nil }
+        return String(decoding: UnsafeBufferPointer(start: baseAddress,
+                                                    count: Int(cchName)),
+                      as: UTF16.self)
+      }
     }
   }
 
