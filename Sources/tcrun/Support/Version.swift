@@ -24,6 +24,14 @@ internal struct Version {
   }
 }
 
+extension Version: Comparable {
+  public static func < (_ lhs: Version, _ rhs: Version) -> Bool {
+    guard lhs.major == rhs.major else { return lhs.major < rhs.major }
+    guard lhs.minor == rhs.minor else { return lhs.minor < rhs.minor }
+    return lhs.patch < rhs.patch
+  }
+}
+
 extension Version: CustomStringConvertible {
   public var description: String {
     "\(major).\(minor).\(patch)"

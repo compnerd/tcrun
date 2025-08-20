@@ -117,8 +117,7 @@ extension SwiftInstallation {
       })
     }
 
-    // TODO(compnerd): sort by version number
-    return installations
+    return installations.sorted { $0.version > $1.version }
   }
 }
 
