@@ -123,8 +123,8 @@ extension SwiftInstallation {
 
 extension SwiftInstallation {
   internal func platforms(containing sdk: String) -> [Platform] {
-    self.platforms.platforms.filter {
-      $0.SDKs.filter { $0.lastPathComponent == sdk }.count > 0
+    return self.platforms.filter { platform in
+      return platform.SDKs.contains { $0.lastPathComponent == sdk }
     }
   }
 
