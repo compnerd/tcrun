@@ -122,6 +122,26 @@ extension SwiftInstallation {
 }
 
 extension SwiftInstallation {
+  internal func contains(toolchain identifier: String) -> Bool {
+    return toolchains.contains { $0.identifier == identifier }
+  }
+
+  internal func contains(sdk identifier: String) -> Bool {
+    return platforms.contains { platform in
+      return platform.SDKs.contains { $0.lastPathComponent == identifier }
+    }
+  }
+}
+
+extension SwiftInstallation {
+  internal func toolchain(matching identifier: String? = nil) -> Toolchain? {
+    return toolchains.first { toolchain in
+      return identifier.map { toolchain.identifier == $0 } ?? true
+    }
+  }
+}
+
+extension SwiftInstallation {
   internal func platforms(containing sdk: String) -> [Platform] {
     return self.platforms.filter { platform in
       return platform.SDKs.contains { $0.lastPathComponent == sdk }
@@ -168,17 +188,8 @@ extension SwiftInstallation: CustomStringConvertible {
 extension Array where Element == SwiftInstallation {
   internal func select(toolchain: String?, sdk: String?) -> SwiftInstallation? {
     return first { installation in
-      let toolchain = toolchain.map { id in
-        installation.toolchains.contains { $0.identifier == id }
-      } ?? true
-
-      let sdk = sdk.map { name in
-        installation.platforms.contains { platform in
-          platform.SDKs.contains { $0.lastPathComponent == name }
-        }
-      } ?? true
-
-      return toolchain && sdk
+      (toolchain.map(installation.contains(toolchain:)) ?? true) &&
+      (sdk.map(installation.contains(sdk:)) ?? true)
     }
   }
 }
