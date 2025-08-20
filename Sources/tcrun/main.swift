@@ -6,6 +6,22 @@ private import WindowsCore
 
 internal import Foundation
 
+private enum SDKResolver {
+  public static func resolve(for invocation: borrowing tcrun) throws -> String {
+    // `-sdk` always takes precedence.
+    if let sdk = invocation.sdk { return sdk }
+
+    // `SDKROOT` is used as a default value if specified.
+    guard let SDKROOT = try GetEnvironmentVariable("SDKROOT") else {
+      // Default to the Boot OS SDK.
+      return "Windows.sdk"
+    }
+
+    // Strip the name of the SDK from the `SDKROOT` environment variable.
+    return URL(filePath: SDKROOT).lastPathComponent
+  }
+}
+
 @main
 private struct tcrun: ParsableCommand {
   public static var configuration: CommandConfiguration {
@@ -71,49 +87,12 @@ private struct tcrun: ParsableCommand {
   public var arguments: [String] = []
 
   public func validate() throws {
-    guard !version else { return }
-
-    guard !showSDKPath, !showSDKPlatformPath else { return }
-    guard !toolchains else { return }
+    if version { return }
+    if toolchains { return }
+    if showSDKPath || showSDKPlatformPath { return }
 
     if tool.isEmpty {
       throw ValidationError("Missing expected argument '<tool>'")
-    }
-  }
-
-  private mutating func run(selecting installation: SwiftInstallation,
-                            toolchain: String?, sdk: String) throws {
-    guard let platform = installation.platform(containing: sdk) else {
-      return
-    }
-
-    if showSDKPlatformPath {
-      let root = installation.platforms.root.appending(component: platform.id,
-                                                       directoryHint: .isDirectory)
-      return print(root.path)
-    }
-
-    guard let sdk = platform.sdk(named: sdk) else { return }
-
-    if showSDKPath {
-      return print(sdk.path)
-    }
-
-    guard let toolchain = installation.toolchain(matching: toolchain) else {
-      return
-    }
-
-    guard let tool = try toolchain.find(tool) else {
-      return
-    }
-
-    switch mode {
-    case .find:
-      print(tool)
-
-    case .run:
-      let tool = URL(filePath: tool)
-      try toolchain.execute(tool, sdk: sdk.path, arguments: arguments)
     }
   }
 
@@ -122,25 +101,60 @@ private struct tcrun: ParsableCommand {
       return print("tcrun \(PackageVersion)")
     }
 
+    // Enumerate installations.
     let installations = try SwiftInstallation.enumerate()
 
+    // Handle toolchain enumeration.
     if toolchains {
       return installations.forEach { print($0) }
     }
 
+    // Resolve the SDK to use.
+    let sdk = try SDKResolver.resolve(for: self)
+
+    // Resolve the toolchain to use.
     let TOOLCHAINS = try GetEnvironmentVariable("TOOLCHAINS")
-    let SDKROOT = try GetEnvironmentVariable("SDKROOT")
+    let toolchain = toolchain ?? TOOLCHAINS
 
-    let OPT_sdk =
-        sdk ?? URL(filePath: SDKROOT ?? "Windows.sdk").lastPathComponent
-    let OPT_toolchain = toolchain ?? TOOLCHAINS
-
+    // Identify the installation matching the toolchain identifier and SDK.
     guard let installation =
-        installations.matching(toolchain: OPT_toolchain, sdk: OPT_sdk) else {
+        installations.matching(toolchain: toolchain, sdk: sdk) else {
       return
     }
 
-    return try run(selecting: installation,
-                   toolchain: OPT_toolchain, sdk: OPT_sdk)
+    // Handle Platform/SDK queries.
+    guard let platform = installation.platform(containing: sdk) else {
+      return
+    }
+
+    if showSDKPlatformPath {
+      let root =
+          installation.platforms.root.appending(component: platform.id,
+                                                directoryHint: .isDirectory)
+      return print(root.path)
+    }
+
+    if showSDKPath {
+      guard let sdk = platform.sdk(named: sdk) else { return }
+      return print(sdk.path)
+    }
+
+    // Handle tool execution.
+    if let toolchain = installation.toolchain(matching: toolchain) {
+      guard let path = try toolchain.find(tool) else {
+        return
+      }
+
+      switch mode {
+      case .find:
+        print(path)
+
+      case .run:
+        if let sdk = platform.sdk(named: sdk) {
+          let tool = URL(filePath: tool)
+          try toolchain.execute(tool, sdk: sdk.path, arguments: arguments)
+        }
+      }
+    }
   }
 }
