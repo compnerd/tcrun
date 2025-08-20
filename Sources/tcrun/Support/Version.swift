@@ -13,13 +13,14 @@ internal struct Version {
   }
 
   public init?(_ version: String) {
-    let components = version.split(separator: "-")[0].split(separator: ".").compactMap { Int($0) }
-    guard components.count == 3 else {
+    guard let version = version.split(separator: "-", maxSplits: 1).first else {
       return nil
     }
-    self.major = components[0]
-    self.minor = components[1]
-    self.patch = components[2]
+
+    let components = version.split(separator: ".").compactMap { Int($0) }
+    guard components.count == 3 else { return nil }
+
+    (major, minor, patch) = (components[0], components[1], components[2])
   }
 }
 
