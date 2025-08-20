@@ -186,7 +186,7 @@ extension SwiftInstallation: CustomStringConvertible {
 }
 
 extension Array where Element == SwiftInstallation {
-  internal func select(toolchain: String?, sdk: String?) -> SwiftInstallation? {
+  internal func matching(toolchain: String?, sdk: String?) -> SwiftInstallation? {
     return first { installation in
       (toolchain.map(installation.contains(toolchain:)) ?? true) &&
       (sdk.map(installation.contains(sdk:)) ?? true)
