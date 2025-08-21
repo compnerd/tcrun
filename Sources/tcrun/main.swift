@@ -151,7 +151,7 @@ private struct tcrun: ParsableCommand {
 
       case .run:
         if let sdk = platform.sdk(named: sdk) {
-          let tool = URL(filePath: tool)
+          let tool = URL(filePath: path)
           try toolchain.execute(tool, sdk: sdk.path, arguments: arguments)
         }
       }
