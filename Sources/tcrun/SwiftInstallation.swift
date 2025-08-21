@@ -162,31 +162,30 @@ extension SwiftInstallation {
 
 extension SwiftInstallation: CustomStringConvertible {
   public var description: String {
+    let toolchains =
+        self.toolchains.map { "    - \($0.identifier) [\($0.location.path)]" }
+
+    let platforms = self.platforms.map { platform in
+      let sdks = platform.SDKs.map { sdk in
+        "          - \(sdk.lastPathComponent) [\(sdk.path)]"
+      }
+      return (
+        [
+          "    - \(platform.id)",
+          "        SDKs:",
+        ] + sdks
+      ).joined(separator: "\n")
+    }
+
     return """
     SwiftInstallation {
       System: \(system)
       Vendor: \(vendor)
       Version: \(version)
       Toolchains:
-      \(
-        toolchains.map {
-          "  - \($0.identifier) [\($0.location.path)]"
-        }.joined(separator: "\n    ")
-      )
+    \(toolchains.joined(separator: "\n"))
       Platforms:
-      \(
-        platforms.map {
-          """
-            - \($0.id)
-                  SDKs:
-                  \(
-                    $0.SDKs.map {
-                      "  - \($0.lastPathComponent) [\($0.path)]"
-                    }.joined(separator: "\n    ")
-                  )
-          """
-        }.joined(separator: "\n    ")
-      )
+    \(platforms.joined(separator: "\n"))
     }
     """
   }
