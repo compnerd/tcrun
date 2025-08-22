@@ -141,6 +141,8 @@ private struct tcrun: ParsableCommand {
 
     // Handle tool execution.
     if let toolchain = installation.toolchain(matching: toolchain) {
+      // TODO(compnerd): if `-sdk` is specified, the tool search should be
+      // scoped to the SDK rather than the toolchain.
       guard let path = try toolchain.find(tool) else {
         return
       }
@@ -150,10 +152,8 @@ private struct tcrun: ParsableCommand {
         print(path)
 
       case .run:
-        if let sdk = platform.sdk(named: sdk) {
-          let tool = URL(filePath: path)
-          try toolchain.execute(tool, sdk: sdk.path, arguments: arguments)
-        }
+        try toolchain.execute(URL(filePath: path), arguments,
+                              sdk: self.sdk.map(platform.sdk(named:)) ?? nil)
       }
     }
   }

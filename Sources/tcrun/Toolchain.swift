@@ -65,13 +65,18 @@ extension Toolchain {
     try SearchExecutable(tool, in: self.bindir.path)
   }
 
-  internal func execute(_ tool: URL, sdk: String, arguments: [String]? = nil) throws -> Never {
+  internal func execute(_ tool: URL, _ arguments: [String]? = nil,
+                        sdk: URL? = nil) throws -> Never {
     let process = Process()
     process.executableURL = tool
     process.arguments = arguments
 
     var environment = ProcessInfo.processInfo.environment
-    environment.updateValue(sdk, forKey: "SDKROOT")
+    if let sdk {
+      environment.updateValue(sdk.path, forKey: "SDKROOT")
+    } else {
+      environment.removeValue(forKey: "SDKROOT")
+    }
     environment.removeValue(forKey: "TOOLCHAINS")
 
     process.environment = environment
