@@ -76,44 +76,44 @@ private func EnumerateToolchains(in DEVELOPER_DIR: URL) throws -> [Toolchain] {
       }
 }
 
-extension SwiftInstallation {
-  private static func QueryInstallation(_ hKey: ManagedHandle<HKEY>,
-                                        _ lpSubKey: String, _ bIsSystem: Bool)
-      throws -> SwiftInstallation? {
-    let hSubKey = try hKey.OpenKey(lpSubKey, 0, KEY_READ)
+private func QueryInstallation(_ hKey: ManagedHandle<HKEY>, _ lpSubKey: String,
+                               _ bIsSystem: Bool) throws -> SwiftInstallation? {
+  let hSubKey = try hKey.OpenKey(lpSubKey, 0, KEY_READ)
 
-    guard let szDisplayName = try? hSubKey.QueryValue("DisplayName") else {
-      return nil
-    }
-
-    if !szDisplayName.starts(with: "Swift Developer Toolkit") {
-      return nil
-    }
-
-    guard let szDisplayVersion = try? hSubKey.QueryValue("DisplayVersion"),
-        let szPublisher = try? hSubKey.QueryValue("Publisher") else {
-      return nil
-    }
-
-    let hVariables = try hSubKey.OpenKey("Variables", 0, KEY_READ)
-    guard let szInstallPath = try? hVariables.QueryValue("InstallRoot") else {
-      return nil
-    }
-
-    guard let version = Version(szDisplayVersion) else {
-      throw WindowsError(ERROR_INVALID_DATA)
-    }
-
-    // TODO: map the bundle to packages and then use that to determine the
-    // InstallRoot
-    let DEVELOPER_DIR =
-        URL(filePath: szInstallPath, directoryHint: .isDirectory)
-    return try .init(system: bIsSystem, vendor: szPublisher, version: version,
-                     toolchains: EnumerateToolchains(in: DEVELOPER_DIR),
-                     platforms: EnumeratePlatforms(in: DEVELOPER_DIR,
-                                                   version: version))
+  guard let szDisplayName = try? hSubKey.QueryValue("DisplayName") else {
+    return nil
   }
 
+  if !szDisplayName.starts(with: "Swift Developer Toolkit") {
+    return nil
+  }
+
+  guard let szDisplayVersion = try? hSubKey.QueryValue("DisplayVersion"),
+      let szPublisher = try? hSubKey.QueryValue("Publisher") else {
+    return nil
+  }
+
+  let hVariables = try hSubKey.OpenKey("Variables", 0, KEY_READ)
+  guard let szInstallPath = try? hVariables.QueryValue("InstallRoot") else {
+    return nil
+  }
+
+  guard let version = Version(szDisplayVersion) else {
+    throw WindowsError(ERROR_INVALID_DATA)
+  }
+
+  // TODO: map the bundle to packages and then use that to determine the
+  // InstallRoot
+  let DEVELOPER_DIR =
+      URL(filePath: szInstallPath, directoryHint: .isDirectory)
+  return try SwiftInstallation(system: bIsSystem, vendor: szPublisher,
+                               version: version,
+                               toolchains: EnumerateToolchains(in: DEVELOPER_DIR),
+                               platforms: EnumeratePlatforms(in: DEVELOPER_DIR,
+                                                             version: version))
+}
+
+extension SwiftInstallation {
   package static func enumerate() throws -> [SwiftInstallation] {
     return try kPaths.compactMap { hive, path in
       guard let hKey = try? ManagedHandle<HKEY>(hive, path, 0, KEY_READ) else {
