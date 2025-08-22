@@ -4,7 +4,7 @@
 internal import Foundation
 internal import WindowsCore
 
-private nonisolated(unsafe) let kPaths = [
+private nonisolated(unsafe) let kRegistryPaths = [
   (HKEY_LOCAL_MACHINE, #"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"#),
   (HKEY_CURRENT_USER, #"Software\Microsoft\Windows\CurrentVersion\Uninstall"#),
 ]
@@ -115,7 +115,7 @@ private func QueryInstallation(_ hKey: ManagedHandle<HKEY>, _ lpSubKey: String,
 
 extension SwiftInstallation {
   package static func enumerate() throws -> [SwiftInstallation] {
-    return try kPaths.compactMap { hive, path in
+    return try kRegistryPaths.lazy.compactMap { hive, path in
       guard let hKey = try? ManagedHandle<HKEY>(hive, path, 0, KEY_READ) else {
         return Array<SwiftInstallation>()
       }
