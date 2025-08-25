@@ -43,7 +43,7 @@ private func EnumeratePlatforms(in DEVELOPER_DIR: URL, version: Version)
                       try entry.lastPathComponent.hasSuffix(".sdk") &&
                           entry.resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true
                     }
-            return Platform(id: platform.lastPathComponent, SDKs: SDKs)
+            return Platform(location: platform, SDKs: SDKs)
           }
   return PlatformCollection(root: PlatformsVersioned, platforms: platforms)
 }
