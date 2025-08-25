@@ -11,7 +11,9 @@ internal struct Platform {
     self.id = id
     self.SDKs = SDKs
   }
+}
 
+extension Platform {
   public func contains(sdk named: String) -> Bool {
     SDKs.contains { $0.lastPathComponent == named }
   }
