@@ -92,37 +92,37 @@ private func QueryInstallation(_ hKey: ManagedHandle<HKEY>, _ lpSubKey: String,
                                _ bIsSystem: Bool) throws -> SwiftInstallation? {
   let hSubKey = try hKey.OpenKey(lpSubKey, 0, KEY_READ)
 
-  guard let szDisplayName = try? hSubKey.QueryValue("DisplayName") else {
+  guard let szDisplayName = try? hSubKey.QueryValue("DisplayName"),
+      szDisplayName.starts(with: "Swift Developer Toolkit") else {
     return nil
   }
 
-  if !szDisplayName.starts(with: "Swift Developer Toolkit") {
-    return nil
+  let query = Result {
+    try (version: hSubKey.QueryValue("DisplayVersion"),
+         vendor: hSubKey.QueryValue("Publisher"),
+         // TODO: map the bundle to packages and then use that to determine
+         // the InstallRoot
+         root: hSubKey.OpenKey("Variables", 0, KEY_READ)
+                      .QueryValue("InstallRoot"))
   }
 
-  guard let szDisplayVersion = try? hSubKey.QueryValue("DisplayVersion"),
-      let szPublisher = try? hSubKey.QueryValue("Publisher") else {
-    return nil
-  }
+  switch query {
+  case let .success(info):
+    guard let version = Version(info.version) else {
+      // FIXME: this should be an internal error type
+      throw WindowsError(ERROR_INVALID_DATA)
+    }
 
-  let hVariables = try hSubKey.OpenKey("Variables", 0, KEY_READ)
-  guard let szInstallPath = try? hVariables.QueryValue("InstallRoot") else {
-    return nil
-  }
+    let DEVELOPER_DIR = URL(filePath: info.root, directoryHint: .isDirectory)
 
-  guard let version = Version(szDisplayVersion) else {
-    throw WindowsError(ERROR_INVALID_DATA)
+    return try SwiftInstallation(system: bIsSystem, vendor: info.vendor,
+                                 version: version,
+                                 toolchains: EnumerateToolchains(in: DEVELOPER_DIR),
+                                 platforms: EnumeratePlatforms(in: DEVELOPER_DIR,
+                                                               version: version))
+  case let .failure(error):
+    throw error
   }
-
-  // TODO: map the bundle to packages and then use that to determine the
-  // InstallRoot
-  let DEVELOPER_DIR =
-      URL(filePath: szInstallPath, directoryHint: .isDirectory)
-  return try SwiftInstallation(system: bIsSystem, vendor: szPublisher,
-                               version: version,
-                               toolchains: EnumerateToolchains(in: DEVELOPER_DIR),
-                               platforms: EnumeratePlatforms(in: DEVELOPER_DIR,
-                                                             version: version))
 }
 
 extension SwiftInstallation {
