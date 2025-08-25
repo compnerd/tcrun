@@ -5,10 +5,12 @@ internal import Foundation
 
 internal struct Platform {
   public let identifier: String
+  public let location: URL
   public let SDKs: [URL]
 
-  public init(id: String, SDKs: [URL]) {
-    self.identifier = id
+  public init(location: URL, SDKs: [URL]) {
+    self.identifier = location.lastPathComponent
+    self.location = location
     self.SDKs = SDKs
   }
 }
