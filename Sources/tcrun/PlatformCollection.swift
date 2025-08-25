@@ -11,7 +11,9 @@ internal struct PlatformCollection {
     self.root = root
     self.platforms = platforms
   }
+}
 
+extension PlatformCollection {
   public func containing(sdk: String) -> [Platform] {
     platforms.filter { $0.contains(sdk: sdk) }
   }
