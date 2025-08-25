@@ -25,9 +25,11 @@ private func EnumeratePlatforms(in DEVELOPER_DIR: URL, version: Version)
   // FIXME: can we enumerate the platforms from the installed packages?
   let platforms =
       try FileManager.default
-          .contentsOfDirectory(at: PlatformsVersioned,
-                               includingPropertiesForKeys: [.isDirectoryKey])
+          .enumerator(at: PlatformsVersioned,
+                      includingPropertiesForKeys: [.isDirectoryKey],
+                      options: [.skipsSubdirectoryDescendants])?
           .lazy
+          .compactMap { $0 as? URL }
           .filter { entry in
             try entry.lastPathComponent.hasSuffix(".platform") &&
                 entry.resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true
@@ -37,17 +39,20 @@ private func EnumeratePlatforms(in DEVELOPER_DIR: URL, version: Version)
                                           directoryHint: .isDirectory)
             let SDKs =
                 try FileManager.default
-                    .contentsOfDirectory(at: root,
-                                         includingPropertiesForKeys: [.isDirectoryKey])
+                    .enumerator(at: root,
+                                includingPropertiesForKeys: [.isDirectoryKey],
+                                options: [.skipsSubdirectoryDescendants])?
+                    .lazy
+                    .compactMap { $0 as? URL }
                     .filter { entry in
                       try entry.lastPathComponent.hasSuffix(".sdk") &&
                           entry.resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true
                     }
                     .map(SDK.init(location:))
 
-            return Platform(location: platform, SDKs: SDKs)
+            return Platform(location: platform, SDKs: SDKs ?? [])
           }
-  return PlatformCollection(root: PlatformsVersioned, platforms: platforms)
+  return PlatformCollection(root: PlatformsVersioned, platforms: platforms ?? [])
 }
 
 private func EnumerateToolchains(in DEVELOPER_DIR: URL) throws -> [Toolchain] {
@@ -55,10 +60,12 @@ private func EnumerateToolchains(in DEVELOPER_DIR: URL) throws -> [Toolchain] {
       DEVELOPER_DIR.appending(component: "Toolchains",
                               directoryHint: .isDirectory)
   // FIXME: can we enumerate the toolchains from the installed packages?
-  return try FileManager.default
-      .contentsOfDirectory(at: ToolchainsRoot,
-                           includingPropertiesForKeys: [.isDirectoryKey])
+  let toolchains = try FileManager.default
+      .enumerator(at: ToolchainsRoot,
+                  includingPropertiesForKeys: [.isDirectoryKey],
+                  options: [.skipsSubdirectoryDescendants])?
       .lazy
+      .compactMap { $0 as? URL }
       .filter {
         (try? $0.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
       }
@@ -76,6 +83,9 @@ private func EnumerateToolchains(in DEVELOPER_DIR: URL) throws -> [Toolchain] {
         return Toolchain(identifier: info["Identifier"] as? String ?? "",
                          location: toolchain)
       }
+      // TODO: how should we sort the toolchains?
+
+  return toolchains ?? Array<Toolchain>()
 }
 
 private func QueryInstallation(_ hKey: ManagedHandle<HKEY>, _ lpSubKey: String,
