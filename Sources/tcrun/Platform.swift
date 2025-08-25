@@ -16,11 +16,11 @@ internal struct Platform {
 }
 
 extension Platform {
-  public func contains(sdk named: String) -> Bool {
-    SDKs.contains { $0.identifier == named }
+  public func contains(sdk identifier: String) -> Bool {
+    return SDKs.contains { $0.identifier == identifier }
   }
 
-  public func sdk(named name: String) -> SDK? {
-    SDKs.first { $0.identifier == name }
+  public func sdk(named identifier: String) -> SDK? {
+    return SDKs.first { $0.identifier == identifier }
   }
 }
