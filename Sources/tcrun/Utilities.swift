@@ -4,6 +4,12 @@
 internal import Foundation
 private import WindowsCore
 
+private nonisolated(unsafe) var kPathExtensions =
+    (try? GetEnvironmentVariable("PATHEXT"))?
+        .split(separator: ";")
+        .map(String.init)
+      ?? []
+
 internal func GetEnvironmentVariable(_ name: String) throws -> String? {
   try name.withCString(encodedAs: UTF16.self) { szVariable in
     let dwResult = GetEnvironmentVariableW(szVariable, nil, 0)
@@ -56,7 +62,7 @@ internal func SearchExecutable(_ name: String, in directory: String? = nil)
     return path
   }
 
-  for `extension` in try GetEnvironmentVariable("PATHEXT")?.split(separator: ";") ?? [] {
+  for `extension` in kPathExtensions {
     if let result = try search(name, in: directory, extension: String(`extension`)) {
       return result
     }
