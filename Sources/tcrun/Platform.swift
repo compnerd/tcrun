@@ -4,11 +4,11 @@
 internal import Foundation
 
 internal struct Platform {
-  public let id: String
+  public let identifier: String
   public let SDKs: [URL]
 
   public init(id: String, SDKs: [URL]) {
-    self.id = id
+    self.identifier = id
     self.SDKs = SDKs
   }
 }
