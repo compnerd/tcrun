@@ -43,6 +43,8 @@ private func EnumeratePlatforms(in DEVELOPER_DIR: URL, version: Version)
                       try entry.lastPathComponent.hasSuffix(".sdk") &&
                           entry.resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true
                     }
+                    .map(SDK.init(location:))
+
             return Platform(location: platform, SDKs: SDKs)
           }
   return PlatformCollection(root: PlatformsVersioned, platforms: platforms)
@@ -135,7 +137,7 @@ extension SwiftInstallation {
 
   internal func contains(sdk identifier: String) -> Bool {
     return platforms.contains { platform in
-      return platform.SDKs.contains { $0.lastPathComponent == identifier }
+      return platform.SDKs.contains { $0.identifier == identifier }
     }
   }
 }
@@ -151,7 +153,7 @@ extension SwiftInstallation {
 extension SwiftInstallation {
   internal func platforms(containing sdk: String) -> [Platform] {
     return self.platforms.filter { platform in
-      return platform.SDKs.contains { $0.lastPathComponent == sdk }
+      return platform.SDKs.contains { $0.identifier == sdk }
     }
   }
 
@@ -167,7 +169,7 @@ extension SwiftInstallation: CustomStringConvertible {
 
     let platforms = self.platforms.map { platform in
       let sdks = platform.SDKs.map { sdk in
-        "          - \(sdk.lastPathComponent) [\(sdk.path)]"
+        "          - \(sdk.identifier) [\(sdk.location.path)]"
       }
       return (
         [

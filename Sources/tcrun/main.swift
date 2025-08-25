@@ -157,7 +157,7 @@ private struct tcrun: ParsableCommand {
 
     if showSDKPath {
       guard let sdk = platform.sdk(named: sdk) else { return }
-      return print(sdk.path)
+      return print(sdk.location.path)
     }
 
     // Handle tool execution.
@@ -174,7 +174,7 @@ private struct tcrun: ParsableCommand {
 
       case .run:
         try execute(URL(filePath: path), arguments,
-                    sdk: self.sdk.map(platform.sdk(named:)) ?? nil)
+                    sdk: self.sdk.map(platform.sdk(named:))??.location)
       }
     }
   }

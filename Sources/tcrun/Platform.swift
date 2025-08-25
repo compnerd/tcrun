@@ -6,9 +6,9 @@ internal import Foundation
 internal struct Platform {
   public let identifier: String
   public let location: URL
-  public let SDKs: [URL]
+  public let SDKs: [SDK]
 
-  public init(location: URL, SDKs: [URL]) {
+  public init(location: URL, SDKs: [SDK]) {
     self.identifier = location.lastPathComponent
     self.location = location
     self.SDKs = SDKs
@@ -17,10 +17,10 @@ internal struct Platform {
 
 extension Platform {
   public func contains(sdk named: String) -> Bool {
-    SDKs.contains { $0.lastPathComponent == named }
+    SDKs.contains { $0.identifier == named }
   }
 
-  public func sdk(named name: String) -> URL? {
-    SDKs.first { $0.lastPathComponent == name }
+  public func sdk(named name: String) -> SDK? {
+    SDKs.first { $0.identifier == name }
   }
 }
