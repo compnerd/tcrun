@@ -171,7 +171,7 @@ extension SwiftInstallation: CustomStringConvertible {
       }
       return (
         [
-          "    - \(platform.id)",
+          "    - \(platform.identifier)",
           "        SDKs:",
         ] + sdks
       ).joined(separator: "\n")
