@@ -71,3 +71,23 @@ internal func SearchExecutable(_ name: String, in directory: String? = nil)
   return nil
 }
 
+internal func execute(_ tool: URL, _ arguments: [String]? = nil,
+                      sdk: URL? = nil) throws -> Never {
+  let process = Process()
+  process.executableURL = tool
+  process.arguments = arguments
+
+  var environment = ProcessInfo.processInfo.environment
+  if let sdk {
+    environment.updateValue(sdk.path, forKey: "SDKROOT")
+  } else {
+    environment.removeValue(forKey: "SDKROOT")
+  }
+  environment.removeValue(forKey: "TOOLCHAINS")
+
+  process.environment = environment
+
+  try process.run()
+  process.waitUntilExit()
+  _exit(process.terminationStatus)
+}
