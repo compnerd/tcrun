@@ -128,10 +128,7 @@ private struct tcrun: ParsableCommand {
     }
 
     if showSDKPlatformPath {
-      let root =
-          installation.platforms.root.appending(component: platform.identifier,
-                                                directoryHint: .isDirectory)
-      return print(root.path)
+      return print(platform.location.path)
     }
 
     if showSDKPath {

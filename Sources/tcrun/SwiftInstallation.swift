@@ -13,79 +13,95 @@ package struct SwiftInstallation {
   let system: Bool
   let vendor: String
   let version: Version
-  let toolchains: [Toolchain]
-  let platforms: PlatformCollection
+  let toolchains: MemoizedSequence<Toolchain>
+  let platforms: MemoizedSequence<Platform>
 }
 
 private func EnumeratePlatforms(in DEVELOPER_DIR: URL, version: Version)
-    throws -> PlatformCollection {
-  let PlatformsVersioned =
-      DEVELOPER_DIR.appending(components: "Platforms", version.description,
-                              directoryHint: .isDirectory)
-  // FIXME: can we enumerate the platforms from the installed packages?
-  let platforms =
-      try FileManager.default
-          .enumerator(at: PlatformsVersioned,
-                      includingPropertiesForKeys: [.isDirectoryKey],
-                      options: [.skipsSubdirectoryDescendants])?
-          .lazy
-          .compactMap { $0 as? URL }
-          .filter { entry in
-            try entry.lastPathComponent.hasSuffix(".platform") &&
-                entry.resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true
-          }
-          .map { platform in
-            let root = platform.appending(components: "Developer", "SDKs",
-                                          directoryHint: .isDirectory)
-            let SDKs =
-                try FileManager.default
-                    .enumerator(at: root,
-                                includingPropertiesForKeys: [.isDirectoryKey],
-                                options: [.skipsSubdirectoryDescendants])?
-                    .lazy
-                    .compactMap { $0 as? URL }
-                    .filter { entry in
-                      try entry.lastPathComponent.hasSuffix(".sdk") &&
-                          entry.resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true
-                    }
-                    .map(SDK.init(location:))
+    throws -> MemoizedSequence<Platform> {
+  let sequence = AnySequence<Platform> {
+    let PlatformsVersioned =
+        DEVELOPER_DIR.appending(components: "Platforms", version.description,
+                                directoryHint: .isDirectory)
 
-            return Platform(location: platform, SDKs: SDKs ?? [])
-          }
-  return PlatformCollection(root: PlatformsVersioned, platforms: platforms ?? [])
-}
+    // FIXME: can we enumerate the platforms from the installed packages?
+    let platforms = FileManager.default
+        .enumerator(at: PlatformsVersioned,
+                    includingPropertiesForKeys: [.isDirectoryKey],
+                    options: [.skipsSubdirectoryDescendants])
 
-private func EnumerateToolchains(in DEVELOPER_DIR: URL) throws -> [Toolchain] {
-  let ToolchainsRoot =
-      DEVELOPER_DIR.appending(component: "Toolchains",
-                              directoryHint: .isDirectory)
-  // FIXME: can we enumerate the toolchains from the installed packages?
-  let toolchains = try FileManager.default
-      .enumerator(at: ToolchainsRoot,
-                  includingPropertiesForKeys: [.isDirectoryKey],
-                  options: [.skipsSubdirectoryDescendants])?
-      .lazy
-      .compactMap { $0 as? URL }
-      .filter {
-        (try? $0.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true
-      }
-      .map { toolchain in
-        let ToolchainInfo =
-            toolchain.appending(component: "ToolchainInfo.plist")
-
-        guard let info =
-            try PropertyListSerialization.propertyList(from: Data(contentsOf: ToolchainInfo),
-                                                       format: nil) as? Dictionary<String, Any> else {
-          throw WindowsError(ERROR_INVALID_DATA)
+    return AnyIterator<Platform> {
+      while let platform = platforms?.nextObject() as? URL {
+        guard platform.lastPathComponent.hasSuffix(".platform"),
+            (try? platform.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true else {
+          continue
         }
 
+        let sequence = AnySequence<SDK> {
+          let root = platform.appending(components: "Developer", "SDKs",
+                                             directoryHint: .isDirectory)
+
+          let SDKs = FileManager.default
+              .enumerator(at: root,
+                          includingPropertiesForKeys: [.isDirectoryKey],
+                          options: [.skipsSubdirectoryDescendants])
+
+          return AnyIterator<SDK> {
+            while let sdk = SDKs?.nextObject() as? URL {
+              guard sdk.lastPathComponent.hasSuffix(".sdk"),
+                  (try? sdk.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true else {
+                continue
+              }
+
+              return SDK(location: sdk)
+            }
+            return nil
+          }
+        }
+        return Platform(location: platform, SDKs: MemoizedSequence(sequence))
+      }
+      return nil
+    }
+  }
+  return MemoizedSequence(sequence)
+}
+
+private func EnumerateToolchains(in DEVELOPER_DIR: URL) throws -> MemoizedSequence<Toolchain> {
+  let sequence = AnySequence<Toolchain> {
+    let ToolchainsRoot =
+        DEVELOPER_DIR.appending(component: "Toolchains",
+                                directoryHint: .isDirectory)
+
+    // FIXME: can we enumerate the toolchains from the installed packages?
+    let toolchains = FileManager.default
+        .enumerator(at: ToolchainsRoot,
+                    includingPropertiesForKeys: [.isDirectoryKey],
+                    options: [.skipsSubdirectoryDescendants])
+
+    // TODO: how should we sort the toolchains?
+    return AnyIterator<Toolchain> {
+      while let toolchain = toolchains?.nextObject() as? URL {
+        guard (try? toolchain.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true else {
+          continue
+        }
+
+        let ToolchainInfo = toolchain.appending(component: "ToolchainInfo.plist")
+
         // FIXME: we should propagate an error if the toolchain image is invalid
+        guard let info =
+            try? PropertyListSerialization.propertyList(from: Data(contentsOf: ToolchainInfo),
+                                                        format: nil) as? Dictionary<String, Any> else {
+          return nil
+        }
+
         return Toolchain(identifier: info["Identifier"] as? String ?? "",
                          location: toolchain)
       }
-      // TODO: how should we sort the toolchains?
+      return nil
+    }
+  }
 
-  return toolchains ?? Array<Toolchain>()
+  return MemoizedSequence(sequence)
 }
 
 private func QueryInstallation(_ hKey: ManagedHandle<HKEY>, _ lpSubKey: String,
@@ -168,7 +184,7 @@ extension SwiftInstallation {
   }
 
   internal func platform(containing sdk: String) -> Platform? {
-    return platforms.containing(sdk: sdk).first
+    return platforms.filter { $0.contains(sdk: sdk) }.first
   }
 }
 

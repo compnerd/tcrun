@@ -6,9 +6,9 @@ internal import Foundation
 internal struct Platform {
   public let identifier: String
   public let location: URL
-  public let SDKs: [SDK]
+  public let SDKs: MemoizedSequence<SDK>
 
-  public init(location: URL, SDKs: [SDK]) {
+  public init(location: URL, SDKs: MemoizedSequence<SDK>) {
     self.identifier = location.lastPathComponent
     self.location = location
     self.SDKs = SDKs
