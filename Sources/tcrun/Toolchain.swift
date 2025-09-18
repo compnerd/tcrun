@@ -1,7 +1,7 @@
 // Copyright © 2025 Saleem Abdulrasool <compnerd@compnerd.org>
 // SPDX-License-Identifier: BSD-3-Clause
 
-internal import Foundation
+internal import FoundationEssentials
 
 internal struct Toolchain {
   public let identifier: String
@@ -23,6 +23,12 @@ extension Toolchain {
   }
 }
 
+internal struct ToolchainInfo: Decodable {
+  let Identifier: String
+  let Version: String
+  let FallbackLibrarySearchPaths: [String]?
+}
+
 extension ToolchainEnumerator {
   internal struct Iterator: IteratorProtocol {
     private let enumerator: FileManager.DirectoryEnumerator?
@@ -42,17 +48,14 @@ extension ToolchainEnumerator {
           continue
         }
 
-        let ToolchainInfo = location.appending(component: "ToolchainInfo.plist")
-
         // FIXME: we should propagate an error if the toolchain image is invalid
         guard let info =
-            try? PropertyListSerialization.propertyList(from: Data(contentsOf: ToolchainInfo),
-                                                        format: nil) as? Dictionary<String, Any> else {
+            try? PropertyListDecoder().decode(ToolchainInfo.self,
+                                              from: Data(contentsOf: location.appending(component: "ToolchainInfo.plist"))) else {
           return nil
         }
 
-        return Toolchain(identifier: info["Identifier"] as? String ?? "",
-                         location: location)
+        return Toolchain(identifier: info.Identifier, location: location)
       }
       return nil
     }
