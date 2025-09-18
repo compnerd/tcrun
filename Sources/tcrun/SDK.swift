@@ -12,3 +12,40 @@ internal struct SDK {
     self.location = location
   }
 }
+
+extension SDKEnumerator {
+  internal struct Iterator: IteratorProtocol {
+    private let enumerator: FileManager.DirectoryEnumerator?
+
+    internal init(root: URL) {
+      self.enumerator =
+          FileManager.default.enumerator(at: root,
+                                         includingPropertiesForKeys: [.isDirectoryKey],
+                                         options: [.skipsSubdirectoryDescendants])
+    }
+
+    internal mutating func next() -> SDK? {
+      while let location = enumerator?.nextObject() as? URL {
+        guard location.lastPathComponent.hasSuffix(".sdk"),
+            (try? location.isDirectory) ?? false else{
+          continue
+        }
+        return SDK(location: location)
+      }
+      return nil
+    }
+  }
+}
+
+internal struct SDKEnumerator: Sequence {
+  private let root: URL
+
+  internal init(in platform: URL) {
+    self.root = platform.appending(components: "Developer", "SDKs",
+                                   directoryHint: .isDirectory)
+  }
+
+  internal func makeIterator() -> Iterator {
+    Iterator(root: root)
+  }
+}
