@@ -1,7 +1,7 @@
 // Copyright © 2025 Saleem Abdulrasool <compnerd@compnerd.org>
 // SPDX-License-Identifier: BSD-3-Clause
 
-internal import Foundation
+internal import FoundationEssentials
 internal import WindowsCore
 
 private nonisolated(unsafe) let kRegistryPaths = [

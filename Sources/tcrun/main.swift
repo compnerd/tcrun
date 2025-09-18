@@ -4,7 +4,7 @@
 private import ArgumentParser
 private import WindowsCore
 
-internal import Foundation
+internal import FoundationEssentials
 
 extension SDK {
   fileprivate static func identifier(for invocation: borrowing tcrun) throws -> String {

@@ -1,7 +1,7 @@
 // Copyright © 2025 Saleem Abdulrasool
 // SPDX-License-Identifier: BSD-3-Clause
 
-internal import Foundation
+internal import FoundationEssentials
 
 extension URL {
   internal var path: String {
