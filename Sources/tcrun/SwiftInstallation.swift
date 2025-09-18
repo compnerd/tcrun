@@ -9,12 +9,12 @@ private nonisolated(unsafe) let kRegistryPaths = [
   (HKEY_CURRENT_USER, #"Software\Microsoft\Windows\CurrentVersion\Uninstall"#),
 ]
 
-package struct SwiftInstallation {
-  let system: Bool
-  let vendor: String
-  let version: Version
-  let toolchains: MemoizedSequence<Toolchain>
-  let platforms: MemoizedSequence<Platform>
+internal struct SwiftInstallation {
+  internal let system: Bool
+  internal let vendor: String
+  internal let version: Version
+  internal let toolchains: MemoizedSequence<Toolchain>
+  internal let platforms: MemoizedSequence<Platform>
 
   internal init(system: Bool, vendor: String, version: Version,
                 toolchains: ToolchainEnumerator,
