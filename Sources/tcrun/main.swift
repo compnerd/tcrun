@@ -22,6 +22,16 @@ extension SDK {
   }
 }
 
+extension Toolchain {
+  fileprivate static func identifier(for invocation: borrowing tcrun) -> String? {
+    // `-toolchain` always takes precedence.
+    if let toolchain = invocation.toolchain { return toolchain }
+
+    // `TOOLCHAINS` is used as a default value if specified.
+    return try? GetEnvironmentVariable("TOOLCHAINS")
+  }
+}
+
 @main
 private struct tcrun: ParsableCommand {
   public static var configuration: CommandConfiguration {
@@ -113,8 +123,7 @@ private struct tcrun: ParsableCommand {
     let sdk = try SDK.identifier(for: self)
 
     // Resolve the toolchain to use.
-    let TOOLCHAINS = try GetEnvironmentVariable("TOOLCHAINS")
-    let toolchain = toolchain ?? TOOLCHAINS
+    let toolchain = Toolchain.identifier(for: self)
 
     // Identify the installation matching the toolchain identifier and SDK.
     guard let installation =
