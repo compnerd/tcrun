@@ -6,8 +6,8 @@ private import WindowsCore
 
 internal import Foundation
 
-private enum SDKResolver {
-  public static func resolve(for invocation: borrowing tcrun) throws -> String {
+extension SDK {
+  fileprivate static func identifier(for invocation: borrowing tcrun) throws -> String {
     // `-sdk` always takes precedence.
     if let sdk = invocation.sdk { return sdk }
 
@@ -110,7 +110,7 @@ private struct tcrun: ParsableCommand {
     }
 
     // Resolve the SDK to use.
-    let sdk = try SDKResolver.resolve(for: self)
+    let sdk = try SDK.identifier(for: self)
 
     // Resolve the toolchain to use.
     let TOOLCHAINS = try GetEnvironmentVariable("TOOLCHAINS")
