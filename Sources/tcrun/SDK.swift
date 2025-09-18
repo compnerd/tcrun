@@ -27,7 +27,7 @@ extension SDKEnumerator {
     internal mutating func next() -> SDK? {
       while let location = enumerator?.nextObject() as? URL {
         guard location.lastPathComponent.hasSuffix(".sdk"),
-            (try? location.isDirectory) ?? false else{
+            (try? location.isDirectory) ?? false else {
           continue
         }
         return SDK(location: location)

@@ -32,7 +32,7 @@ extension ToolchainEnumerator {
       self.enumerator =
           FileManager.default.enumerator(at: root,
                                          includingPropertiesForKeys: [.isDirectoryKey],
-                                         options: [.skipsHiddenFiles])
+                                         options: [.skipsSubdirectoryDescendants])
     }
 
     // TODO: how should we sort the toolchains?

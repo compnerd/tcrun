@@ -33,7 +33,7 @@ extension PlatformEnumerator {
       self.enumerator =
           FileManager.default.enumerator(at: root,
                                          includingPropertiesForKeys: [.isDirectoryKey],
-                                         options: [.skipsHiddenFiles])
+                                         options: [.skipsSubdirectoryDescendants])
     }
 
     internal mutating func next() -> Platform? {
