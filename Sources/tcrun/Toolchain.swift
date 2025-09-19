@@ -25,7 +25,7 @@ extension Toolchain {
 
 internal struct ToolchainInfo: Decodable {
   let Identifier: String
-  let Version: String
+  let Version: String?
   let FallbackLibrarySearchPaths: [String]?
 }
 
