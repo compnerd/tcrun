@@ -1,7 +1,10 @@
 // Copyright © 2025 Saleem Abdulrasool <compnerd@compnerd.org>
 // SPDX-License-Identifier: BSD-3-Clause
 
-internal import Foundation
+internal import FoundationEssentials
+internal import Subprocess
+
+private import CRT
 private import WindowsCore
 
 private nonisolated(unsafe) var kPathExtensions =
@@ -71,23 +74,38 @@ internal func SearchExecutable(_ name: String, in directory: String? = nil)
   return nil
 }
 
-internal func execute(_ tool: URL, _ arguments: [String]? = nil,
-                      sdk: URL? = nil) throws -> Never {
-  let process = Process()
-  process.executableURL = tool
-  process.arguments = arguments
-
-  var environment = ProcessInfo.processInfo.environment
-  if let sdk {
-    environment.updateValue(sdk.path, forKey: "SDKROOT")
-  } else {
-    environment.removeValue(forKey: "SDKROOT")
+extension InputProtocol where Self == FileDescriptorInput {
+  internal static var stdin: Self {
+    .fileDescriptor(.init(rawValue: _fileno(CRT.stdin)),
+                    closeAfterSpawningProcess: false)
   }
-  environment.removeValue(forKey: "TOOLCHAINS")
+}
 
-  process.environment = environment
+extension OutputProtocol where Self == FileDescriptorOutput {
+  internal static var stdout: Self {
+    .fileDescriptor(.init(rawValue: _fileno(CRT.stdout)),
+                    closeAfterSpawningProcess: false)
+  }
 
-  try process.run()
-  process.waitUntilExit()
-  _exit(process.terminationStatus)
+  internal static var stderr: Self {
+    .fileDescriptor(.init(rawValue: _fileno(CRT.stderr)),
+                    closeAfterSpawningProcess: false)
+  }
+}
+
+internal func execute(_ tool: URL, _ arguments: [String] = [],
+                      sdk: URL? = nil) async throws -> Never {
+  let result = try await run(.path(.init(tool.path)),
+                             arguments: .init(arguments),
+                             environment: .inherit.updating([
+                               "SDKROOT": sdk?.path ?? "",
+                               "TOOLCHAINS": ""
+                             ]),
+                             input: .stdin, output: .stdout, error: .stderr)
+  return switch result.terminationStatus {
+  case let .exited(code):
+    _exit(CInt(bitPattern: code))
+  case let .unhandledException(code):
+    _exit(CInt(bitPattern: code))
+  }
 }
