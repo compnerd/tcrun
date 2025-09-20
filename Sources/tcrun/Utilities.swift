@@ -1,7 +1,10 @@
 // Copyright © 2025 Saleem Abdulrasool <compnerd@compnerd.org>
 // SPDX-License-Identifier: BSD-3-Clause
 
-internal import Foundation
+internal import FoundationEssentials
+internal import Subprocess
+
+private import CRT
 private import WindowsCore
 
 private nonisolated(unsafe) var kPathExtensions =
@@ -71,23 +74,44 @@ internal func SearchExecutable(_ name: String, in directory: String? = nil)
   return nil
 }
 
-internal func execute(_ tool: URL, _ arguments: [String]? = nil,
-                      sdk: URL? = nil) throws -> Never {
-  let process = Process()
-  process.executableURL = tool
-  process.arguments = arguments
+private let STDIN_FILENO: CInt = _fileno(CRT.stdin)
+private let STDOUT_FILENO: CInt = _fileno(CRT.stdout)
+private let STDERR_FILENO: CInt = _fileno(CRT.stderr)
 
-  var environment = ProcessInfo.processInfo.environment
-  if let sdk {
-    environment.updateValue(sdk.path, forKey: "SDKROOT")
-  } else {
-    environment.removeValue(forKey: "SDKROOT")
+extension InputProtocol where Self == FileDescriptorInput {
+  internal static var stdin: Self {
+    .fileDescriptor(.init(rawValue: STDIN_FILENO),
+                    closeAfterSpawningProcess: false)
   }
-  environment.removeValue(forKey: "TOOLCHAINS")
+}
 
-  process.environment = environment
+extension OutputProtocol where Self == FileDescriptorOutput {
+  internal static var stdout: Self {
+    .fileDescriptor(.init(rawValue: STDOUT_FILENO),
+                    closeAfterSpawningProcess: false)
+  }
 
-  try process.run()
-  process.waitUntilExit()
-  _exit(process.terminationStatus)
+  internal static var stderr: Self {
+    .fileDescriptor(.init(rawValue: STDERR_FILENO),
+                    closeAfterSpawningProcess: false)
+  }
+}
+
+internal func execute(_ tool: URL, _ arguments: [String] = [],
+                      sdk: URL? = nil) async throws -> Never {
+  var environment: Dictionary<Environment.Key, String> =
+      .init(uniqueKeysWithValues: ProcessInfo.processInfo.environment.filter {
+              !["SDKROOT", "TOOLCHAINS"].contains($0.key)
+            }.map { (Environment.Key(stringLiteral: $0.key), $0.value) })
+  if let sdk = sdk?.path {
+    environment["SDKROOT"] = sdk
+  }
+  let result = try await run(.path(.init(tool.path)),
+                             arguments: .init(arguments),
+                             environment: .custom(environment),
+                             input: .stdin, output: .stdout, error: .stderr)
+  return switch result.terminationStatus {
+  case let .exited(code), let .unhandledException(code):
+    _exit(CInt(bitPattern: code))
+  }
 }
