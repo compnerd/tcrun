@@ -33,7 +33,7 @@ extension Toolchain {
 }
 
 @main
-private struct tcrun: ParsableCommand {
+private struct tcrun: AsyncParsableCommand {
   public static var configuration: CommandConfiguration {
     CommandConfiguration(abstract: "Swift Toolchain Execution Helper")
   }
@@ -106,7 +106,7 @@ private struct tcrun: ParsableCommand {
     }
   }
 
-  public mutating func run() throws {
+  public mutating func run() async throws {
     if version {
       return print("tcrun \(PackageVersion)")
     }
@@ -158,8 +158,8 @@ private struct tcrun: ParsableCommand {
         print(path)
 
       case .run:
-        try execute(URL(filePath: path), arguments,
-                    sdk: self.sdk.map(platform.sdk(named:))??.location)
+        try await execute(URL(filePath: path), arguments,
+                          sdk: self.sdk.map(platform.sdk(named:))??.location)
       }
     }
   }
