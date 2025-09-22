@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/release.yml
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: write
+  attestations: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: ${{ github.workspace }}/SourceCache/tcrun
+
+      - name: Setup Swift
+        uses: compnerd/gha-setup-swift@main
+        with:
+          swift-version: development
+          swift-build: DEVELOPMENT-SNAPSHOT-2025-09-14-a
+          update-sdk-modules: true
+
+      - working-directory: ${{ github.workspace }}/SourceCache/tcrun
+        run: |
+          $ExperimentalSDK = "$(Split-Path -Path ${env:SDKROOT} -Parent)/WindowsExperimental.sdk"
+          swift build --triple x86_64-unknown-windows-msvc -debug-info-format none -c release -Xswiftc -sdk -Xswiftc ${ExperimentalSDK} -Xswiftc -static-stdlib
+
+      - working-directory: ${{ github.workspace }}/SourceCache/tcrun
+        run: |
+          $ExperimentalSDK = "$(Split-Path -Path ${env:SDKROOT} -Parent)/WindowsExperimental.sdk"
+          swift build --triple aarch64-unknown-windows-msvc -debug-info-format none -c release -Xswiftc -sdk -Xswiftc ${ExperimentalSDK} -Xswiftc -static-stdlib
+
+      - uses: anchore/sbom-action@v0
+        with:
+          dependency-snapshot: true
+          path: ${{ github.workspace }}/SourceCache/tcrun
+          output-file: sbom.spdx.json
+
+      - uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: |
+            ${{ github.workspace }}/SourceCache/tcrun/.build/aarch64-unknown-windows-msvc/release/tcrun.exe
+            ${{ github.workspace }}/SourceCache/tcrun/.build/x86_64-unknown-windows-msvc/release/tcrun.exe
+
+      - uses: actions/attest-sbom@v3
+        with:
+          subject-path: |
+            ${{ github.workspace }}/SourceCache/tcrun/.build/aarch64-unknown-windows-msvc/release/tcrun.exe
+            ${{ github.workspace }}/SourceCache/tcrun/.build/x86_64-unknown-windows-msvc/release/tcrun.exe
+          sbom-path: sbom.spdx.json
+
+      - if: github.ref_type == 'tag'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          Copy-Item "${{ github.workspace }}/SourceCache/tcrun/.build/x86_64-unknown-windows-msvc/release/tcrun.exe" tcrun-amd64.exe
+          Copy-Item "${{ github.workspace }}/SourceCache/tcrun/.build/aarch64-unknown-windows-msvc/release/tcrun.exe" tcrun-arm64.exe
+
+          gh release upload ${{ github.ref_name }} "tcrun-arm64.exe#Windows ARM64" -R ${{ github.repository }}
+          gh release upload ${{ github.ref_name }} "tcrun-amd64.exe#Windows x86_64" -R ${{ github.repository }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-aarch64
+          path: ${{ github.workspace }}/SourceCache/tcrun/.build/aarch64-unknown-windows-msvc/release/tcrun.exe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-x86_64
+          path: ${{ github.workspace }}/SourceCache/tcrun/.build/x86_64-unknown-windows-msvc/release/tcrun.exe
